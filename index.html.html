@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Sindicato Juan Flores Vivas CIPS-MINSA</title>
+<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body { font-family: Arial, sans-serif; margin:0; background:#f9f9f9; color:#333; }
+h1,h2,h3 { color:#004080; }
+section { padding:20px; max-width:1000px; margin:auto; background:#fff; margin-bottom:20px; border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,0.1);}
+nav ul { list-style:none; margin:0; padding:0; display:flex; flex-wrap:wrap; background:#004080; }
+nav li { position:relative; margin-right:10px; }
+nav a { color:#fff; display:block; padding:12px; text-decoration:none; font-size:14px; }
+nav a:hover { background:#0066cc; }
+nav li ul { display:none; position:absolute; top:100%; left:0; background:#e6f0ff; min-width:140px; border-radius:4px; z-index:100; }
+nav li:hover > ul { display:block; }
+nav li ul li a { color:#004080; padding:8px; font-size:14px; }
+nav li ul li a:hover { background:#cce0ff; }
+nav a.active { background:#0066cc; }
+@media(max-width:700px){
+  nav > ul{flex-direction:column;}
+  nav li ul{position:static;}
+  nav li { margin-right:0; }
+}
+table { width:100%; border-collapse:collapse; margin-top:10px; font-size:12px; }
+th, td { border:1px solid #ccc; padding:6px; text-align:center; }
+th { background:#004080; color:#fff; font-size:12px; }
+#chart_div { width:100%; height:300px; margin-top:10px; }
+.summary { display:flex; flex-wrap:wrap; justify-content:space-around; margin-top:10px; }
+.summary div { background:#e6f0ff; padding:10px; border-radius:8px; text-align:center; width:45%; margin-bottom:10px; }
+.summary div h4 { margin:5px 0; font-size:14px; }
+#qr_container { text-align:center; margin-top:10px; }
+#downloadPdf { margin-top:10px; padding:8px 16px; background:#004080; color:white; border:none; border-radius:5px; cursor:pointer; font-size:14px; }
+</style>
+</head>
+<body>
+
+<h1 style="text-align:center; padding:20px 0;">Sindicato Juan Flores Vivas CIPS-MINSA</h1>
+
+<nav>
+<ul>
+  <li><a href="#inicio">Inicio</a></li>
+  <li><a href="#quienes">Quiénes Somos</a>
+    <ul>
+      <li><a href="#mision">Misión</a></li>
+      <li><a href="#vision">Visión</a></li>
+    </ul>
+  </li>
+  <li><a href="#actividades">Actividades</a></li>
+  <li><a href="#registros">Registros Mensuales</a>
+    <ul id="menu-registros"></ul>
+  </li>
+  <li><a href="#contacto">Contacto</a></li>
+</ul>
+</nav>
+
+<section id="inicio">
+<h2>Inicio</h2>
+<p>Bienvenidos al portal del Sindicato Juan Flores Vivas CIPS-MINSA. Aquí encontrarás todos los registros financieros y actividades realizadas desde octubre 2024 hasta la fecha.</p>
+</section>
+
+<section id="quienes">
+<h2>Quiénes Somos</h2>
+<section id="mision">
+<h3>Misión</h3>
+<p>Representar y proteger los derechos de los trabajadores del CIPS-MINSA, promoviendo transparencia y participación activa.</p>
+</section>
+<section id="vision">
+<h3>Visión</h3>
+<p>Fortalecer la organización sindical y garantizar el bienestar de todos los miembros mediante información clara y accesible.</p>
+</section>
+</section>
+
+<section id="actividades">
+<h2>Actividades</h2>
+<ul>
+<li>Reunión del comité directivo - 05/03/2026</li>
+<li>Capacitación laboral - 15/03/2026</li>
+<li>Entrega de beneficios - 20/03/2026</li>
+</ul>
+</section>
+
+<section id="registros">
+<h2>Dashboard Mensual</h2>
+<div class="summary" id="totals"></div>
+<div id="chart_div"></div>
+<div id="tables"></div>
+<div id="qr_container">
+<h4>QR para este mes:</h4>
+<div id="qrcode"></div>
+</div>
+<button id="downloadPdf">Descargar PDF</button>
+</section>
+
+<section id="contacto">
+<h2>Contacto</h2>
+<p>Email: sindicato@correo.com</p>
+<p>Teléfono: +505 1234 5678</p>
+</section>
+
+<script>
+google.charts.load('current', {'packages':['table','corechart']});
+
+const sheets = {
+  "Ingresos": "ID_INGRESOS",
+  "Egresos": "ID_EGRESOS",
+  "IngresosEgresos": "ID_INGRESOS_MENOS_EGRESOS",
+  "CuentasPorCobrar": "ID_CUENTAS_POR_COBRAR",
+  "Consolidado": "ID_INFORME_CONSOLIDADO"
+};
+
+const menu = document.getElementById("menu-registros");
+const years = ["2024","2025","2026"];
+const months = ["Octubre","Noviembre","Diciembre","Enero","Febrero","Marzo"];
+
+years.forEach(y=>{
+  let liYear=document.createElement("li");
+  liYear.textContent=y;
+  let ulMonth=document.createElement("ul");
+  months.forEach(m=>{
+    let liMonth=document.createElement("li");
+    let a=document.createElement("a");
+    a.href="#"; a.textContent=m; a.dataset.year=y; a.dataset.month=m;
+    a.addEventListener("click",(e)=>{
+      e.preventDefault();
+      document.querySelectorAll("#menu-registros a").forEach(a=>a.classList.remove("active"));
+      a.classList.add("active");
+      drawDashboard(m,y);
+    });
+    liMonth.appendChild(a); ulMonth.appendChild(liMonth);
+  });
+  liYear.appendChild(ulMonth); menu.appendChild(liYear);
+});
+
+function drawDashboard(month, year){
+  google.charts.setOnLoadCallback(()=>{
+    const dashboardDiv=document.getElementById("tables");
+    const totalsDiv=document.getElementById("totals");
+    const chartDiv=document.getElementById("chart_div");
+    dashboardDiv.innerHTML=""; totalsDiv.innerHTML=""; chartDiv.innerHTML="";
+    function querySheet(sheetId, callback){
+      const query = new google.visualization.Query(`https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?sheet=Sheet1&headers=1`);
+      query.send(response=>{
+        if(response.isError()) callback(null);
+        else callback(response.getDataTable());
+      });
+    }
+    const dataObjects={}; let loaded=0;
+    Object.keys(sheets).forEach(k=>{
+      querySheet(sheets[k],data=>{
+        dataObjects[k]=data; loaded++;
+        if(loaded===Object.keys(sheets).length){ renderDashboard(dataObjects,month,year);}
+      });
+    });
+  });
+}
+
+function renderDashboard(dataObjects, month, year){
+  const dashboardDiv=document.getElementById("tables");
+  const totalsDiv=document.getElementById("totals");
+  const chartDiv=document.getElementById("chart_div");
+
+  function filterByMonth(dt){
+    const monthIndex = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"].indexOf(month);
+    const yearNum=parseInt(year);
+    const view=new google.visualization.DataView(dt);
+    view.setRows(dt.getFilteredRows([{column:0,test:val=>{let d=new Date(val); return d.getMonth()===monthIndex && d.getFullYear()===yearNum;}}]));
+    return view;
+  }
+
+  let totalIngresos=0,totalEgresos=0,superavit=0;
+  if(dataObjects["Ingresos"]) dataObjects["Ingresos"].getFilteredRows([{column:0,test:val=>{let d=new Date(val); return d.getMonth()===["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"].indexOf(month)&&d.getFullYear()===parseInt(year);}}]).forEach(r=>{totalIngresos+=parseFloat(dataObjects["Ingresos"].getValue(r,1));});
+  if(dataObjects["Egresos"]) dataObjects["Egresos"].getFilteredRows([{column:0,test:val=>{let d=new Date(val); return d.getMonth()===["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"].indexOf(month)&&d.getFullYear()===parseInt(year);}}]).forEach(r=>{totalEgresos+=parseFloat(dataObjects["Egresos"].getValue(r,1));});
+  if(dataObjects["Consolidado"]) superavit=dataObjects["Consolidado"].getValue(0,2);
+
+  totalsDiv.innerHTML=`<div><h4>Ingresos</h4><p>$${totalIngresos.toFixed(2)}</p></div>
+                       <div><h4>Egresos</h4><p>$${totalEgresos.toFixed(2)}</p></div>
+                       <div><h4>Diferencia</h4><p>$${(totalIngresos-totalEgresos).toFixed(2)}</p></div>
+                       <div><h4>Superávit/Déficit</h4><p>$${superavit.toFixed(2)}</p></div>`;
+
+  const chartData=google.visualization.arrayToDataTable([['Tipo','Monto'],['Ingresos',totalIngresos],['Egresos',totalEgresos]]);
+  const chart=new google.visualization.ColumnChart(chartDiv);
+  chart.draw(chartData,{title:`Ingresos vs Egresos - ${month} ${year}`, legend:{position:'bottom'}, colors:['#28a745','#dc3545']});
+
+  Object.keys(dataObjects).forEach(k=>{
+    if(dataObjects[k]){
+      const table=new google.visualization.Table(document.createElement("div"));
+      table.draw(filterByMonth(dataObjects[k]), {showRowNumber:true,width:'100%',height:'100%'});
+      dashboardDiv.appendChild(document.createElement("h4")).innerText=k.replace(/([A-Z])/g," $1");
+      dashboardDiv.appendChild(table.getContainer());
+    }
+  });
+
+  document.getElementById("qrcode").innerHTML="";
+  let urlActual=window.location.href.split('#')[0]+"#"+year+"-"+month;
+  new QRCode(document.getElementById("qrcode"),{text:urlActual,width:128,height:128});
+}
+
+// PDF dinámico con nombre por mes y año
+document.getElementById("downloadPdf").addEventListener("click",()=>{
+  const { jsPDF } = window.jspdf;
+  const dashboard=document.getElementById("registros");
+  html2canvas(dashboard).then(canvas=>{
+    const imgData=canvas.toDataURL("image/png");
+    const pdf=new jsPDF('p','pt','a4');
+    const imgProps=pdf.getImageProperties(imgData);
+    const pdfWidth=pdf.internal.pageSize.getWidth();
+    const pdfHeight=(imgProps.height*pdfWidth)/imgProps.width;
+    pdf.addImage(imgData,'PNG',0,0,pdfWidth,pdfHeight);
+
+    const activeMonth = document.querySelector("#menu-registros a.active")?.dataset.month || "Mes";
+    const activeYear = document.querySelector("#menu-registros a.active")?.dataset.year || "Año";
+    pdf.save(`Reporte_${activeMonth}_${activeYear}.pdf`);
+  });
+});
+</script>
+
+</body>
+</html>
