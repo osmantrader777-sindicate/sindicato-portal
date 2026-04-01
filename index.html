@@ -2,177 +2,178 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Sindicato Juan Flores Vivas CIPS-MINSA</title>
+<title>Sindicato Juan Flores Vivas</title>
 
 <script src="https://www.gstatic.com/charts/loader.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-body { font-family: Arial; margin:0; background:#f9f9f9; }
-h1,h2,h3 { color:#004080; }
-section { padding:20px; max-width:1000px; margin:auto; background:#fff; margin-bottom:20px; border-radius:8px; }
-nav ul { list-style:none; margin:0; padding:0; display:flex; flex-wrap:wrap; background:#004080; }
-nav a { color:#fff; padding:12px; display:block; text-decoration:none; }
-nav a:hover { background:#0066cc; }
-.summary { display:flex; flex-wrap:wrap; justify-content:space-around; }
-.summary div { background:#e6f0ff; padding:10px; border-radius:8px; width:45%; margin:5px; text-align:center; }
-#chart_div { height:300px; }
+body { font-family: Arial; margin:0; background:#f4f6f9; }
+h1 { text-align:center; padding:20px; color:#003366; }
+
+section {
+  max-width:900px;
+  margin:auto;
+  background:#fff;
+  padding:20px;
+  border-radius:10px;
+  margin-bottom:20px;
+}
+
+.summary {
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+.card {
+  flex:1;
+  background:#e6f0ff;
+  padding:15px;
+  border-radius:10px;
+  text-align:center;
+  min-width:250px;
+}
+
+#chart_div { height:250px; margin-top:20px; }
+
+select {
+  padding:8px;
+  margin-bottom:15px;
+  width:100%;
+}
+
+iframe { border:none; border-radius:10px; }
 </style>
 </head>
 
 <body>
 
-<h1 style="text-align:center;">Sindicato Juan Flores Vivas CIPS-MINSA</h1>
+<h1>Sindicato Juan Flores Vivas</h1>
 
-<nav>
-<ul>
-<li><a href="#inicio">Inicio</a></li>
-<li><a href="#registros">Registros</a></li>
-<li><a href="#contacto">Contacto</a></li>
-</ul>
-</nav>
+<section>
 
-<section id="inicio">
-<h2>Inicio</h2>
-<p>Portal financiero del sindicato.</p>
-</section>
+<select id="mesSelector"></select>
 
-<section id="registros">
-<h2>Dashboard</h2>
-
-<div class="summary" id="totals"></div>
-<div id="chart_div"></div>
-<div id="tables"></div>
-
-<div id="qr_container">
-<h4>QR:</h4>
-<div id="qrcode"></div>
+<div class="summary">
+  <div class="card"><h3>Ingresos</h3><p id="ingresos">C$ 0</p></div>
+  <div class="card"><h3>Egresos</h3><p id="egresos">C$ 0</p></div>
+  <div class="card"><h3>Diferencia</h3><p id="diferencia">C$ 0</p></div>
 </div>
 
-<button id="downloadPdf">Descargar PDF</button>
+<div id="chart_div"></div>
 
 </section>
 
-<section id="contacto">
-<h2>Contacto</h2>
-<p>Email: sindicato@correo.com</p>
+<section>
+<h3>Archivo completo</h3>
+<iframe 
+  src="https://docs.google.com/spreadsheets/d/1N1UuKS1czEdaGZdkCIX9TGPMw1QJP4on/preview" 
+  width="100%" 
+  height="400">
+</iframe>
 </section>
 
 <script>
 
-google.charts.load('current', {'packages':['table','corechart']});
+google.charts.load('current', {'packages':['corechart']});
 
-const ID = "1N1UuKS1czEdaGZdkCIX9TGPMw1QJP4on";
+const SHEET_ID = "1N1UuKS1czEdaGZdkCIX9TGPMw1QJP4on";
+const meses = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 
-// 🔥 Convierte números aunque estén mal formateados
-function convertirNumero(valor){
-  if(typeof valor === "number") return valor;
+// 🔥 Limpia cualquier formato tipo "C$ 3,000"
+function limpiarNumero(valor){
   if(typeof valor === "string"){
-    return parseFloat(
-      valor.replace(/\./g,"")
-           .replace(",",".")
-           .replace(/[^\d.-]/g,"")
-    ) || 0;
+    valor = valor.replace(/[^\d.-]/g, "");
   }
-  return 0;
+  return parseFloat(valor) || 0;
 }
 
-// 🔗 Leer hoja
 function query(sheet, callback){
-  const url = `https://docs.google.com/spreadsheets/d/${ID}/gviz/tq?sheet=${encodeURIComponent(sheet)}`;
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?sheet=${encodeURIComponent(sheet)}&headers=1`;
   const q = new google.visualization.Query(url);
   q.send(res=>{
-    if(res.isError()) callback(null);
-    else callback(res.getDataTable());
+    if(res.isError()) {
+      console.error("Error en hoja:", sheet);
+      callback(null);
+    } else {
+      callback(res.getDataTable());
+    }
   });
 }
 
-// 🚀 Cargar datos
-function cargar(){
-  google.charts.setOnLoadCallback(()=>{
-    query("INGRESOS", ingresos=>{
-      query("EGRESOS", egresos=>{
-        render(ingresos, egresos);
+// 🔥 AHORA USA COLUMNA D (índice 3)
+function calcularPorMes(data, mesIndex, year){
+
+  let total = 0;
+
+  for(let i=0;i<data.getNumberOfRows();i++){
+
+    let fecha = new Date(data.getValue(i,0));
+    let monto = limpiarNumero(data.getValue(i,3)); // 👈 AQUÍ ESTÁ LA CORRECCIÓN
+
+    if(fecha instanceof Date && !isNaN(fecha)){
+      if(fecha.getMonth() === mesIndex && fecha.getFullYear() === year){
+        total += monto;
+      }
+    }
+  }
+
+  return total;
+}
+
+function cargarDatos(mesIndex, year){
+
+  query("INGRESOS", ingresosData=>{
+    query("EGRESOS", egresosData=>{
+
+      let ingresos = ingresosData ? calcularPorMes(ingresosData, mesIndex, year) : 0;
+      let egresos = egresosData ? calcularPorMes(egresosData, mesIndex, year) : 0;
+      let diferencia = ingresos - egresos;
+
+      document.getElementById("ingresos").innerText = `C$ ${ingresos.toFixed(2)}`;
+      document.getElementById("egresos").innerText = `C$ ${egresos.toFixed(2)}`;
+      document.getElementById("diferencia").innerText = `C$ ${diferencia.toFixed(2)}`;
+
+      const chartData = google.visualization.arrayToDataTable([
+        ['Tipo','Monto'],
+        ['Ingresos', ingresos],
+        ['Egresos', egresos]
+      ]);
+
+      const chart = new google.visualization.ColumnChart(document.getElementById('chart_div'));
+      chart.draw(chartData, {
+        title: `Reporte - ${meses[mesIndex]} ${year}`,
+        legend: { position: "none" }
       });
+
     });
   });
+
 }
 
-// 📊 Render
-function render(ingresos, egresos){
+function iniciar(){
 
-  let totalIngresos=0;
-  let totalEgresos=0;
+  const select = document.getElementById("mesSelector");
+  const year = new Date().getFullYear();
 
-  // 🔥 CORREGIDO → columna 4 (Monto)
-  if(ingresos){
-    for(let i=0;i<ingresos.getNumberOfRows();i++){
-      totalIngresos += convertirNumero(ingresos.getValue(i,4));
-    }
-  }
-
-  if(egresos){
-    for(let i=0;i<egresos.getNumberOfRows();i++){
-      totalEgresos += convertirNumero(egresos.getValue(i,4));
-    }
-  }
-
-  document.getElementById("totals").innerHTML = `
-    <div><h3>Ingresos</h3><p>C$ ${totalIngresos.toFixed(2)}</p></div>
-    <div><h3>Egresos</h3><p>C$ ${totalEgresos.toFixed(2)}</p></div>
-    <div><h3>Diferencia</h3><p>C$ ${(totalIngresos-totalEgresos).toFixed(2)}</p></div>
-  `;
-
-  const data = google.visualization.arrayToDataTable([
-    ['Tipo','Monto'],
-    ['Ingresos',totalIngresos],
-    ['Egresos',totalEgresos]
-  ]);
-
-  new google.visualization.ColumnChart(document.getElementById('chart_div')).draw(data);
-
-  const tables = document.getElementById("tables");
-  tables.innerHTML="";
-
-  if(ingresos){
-    let div=document.createElement("div");
-    tables.appendChild(document.createElement("h3")).innerText="Ingresos";
-    tables.appendChild(div);
-    new google.visualization.Table(div).draw(ingresos);
-  }
-
-  if(egresos){
-    let div=document.createElement("div");
-    tables.appendChild(document.createElement("h3")).innerText="Egresos";
-    tables.appendChild(div);
-    new google.visualization.Table(div).draw(egresos);
-  }
-
-  // QR
-  document.getElementById("qrcode").innerHTML="";
-  new QRCode(document.getElementById("qrcode"),{
-    text: window.location.href,
-    width:120,
-    height:120
+  meses.forEach((mes, index)=>{
+    let option = document.createElement("option");
+    option.value = index;
+    option.text = mes + " " + year;
+    select.appendChild(option);
   });
+
+  select.addEventListener("change", ()=>{
+    cargarDatos(parseInt(select.value), year);
+  });
+
+  const mesActual = new Date().getMonth();
+  select.value = mesActual;
+  cargarDatos(mesActual, year);
+
 }
 
-// PDF
-document.getElementById("downloadPdf").addEventListener("click",()=>{
-  const { jsPDF } = window.jspdf;
-  html2canvas(document.body).then(canvas=>{
-    const img=canvas.toDataURL("image/png");
-    const pdf=new jsPDF();
-    pdf.addImage(img,'PNG',0,0);
-    pdf.save("reporte.pdf");
-  });
-});
-
-cargar();
+google.charts.setOnLoadCallback(iniciar);
 
 </script>
 
