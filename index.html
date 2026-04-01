@@ -42,6 +42,7 @@ google.charts.load('current', {'packages':['table','corechart']});
 
 const ID = "1N1UuKS1czEdaGZdkCIX9TGPMw1QJP4on";
 
+// 🔥 Convierte cualquier formato a número válido
 function convertirNumero(valor){
   if(typeof valor === "number") return valor;
   if(typeof valor === "string"){
@@ -54,6 +55,7 @@ function convertirNumero(valor){
   return 0;
 }
 
+// 🔗 Consulta hojas
 function query(sheet, callback){
   const url = `https://docs.google.com/spreadsheets/d/${ID}/gviz/tq?sheet=${encodeURIComponent(sheet)}`;
   const q = new google.visualization.Query(url);
@@ -63,6 +65,7 @@ function query(sheet, callback){
   });
 }
 
+// 🚀 Cargar datos
 function cargar(){
   google.charts.setOnLoadCallback(()=>{
     
@@ -75,27 +78,29 @@ function cargar(){
   });
 }
 
+// 📊 Renderizar
 function render(ingresos, egresos){
 
   let totalIngresos=0;
   let totalEgresos=0;
 
+  // 🔥 AQUÍ ESTÁ LA CLAVE → columna 4 (Monto)
   if(ingresos){
     for(let i=0;i<ingresos.getNumberOfRows();i++){
-      totalIngresos += convertirNumero(ingresos.getValue(i,1));
+      totalIngresos += convertirNumero(ingresos.getValue(i,4));
     }
   }
 
   if(egresos){
     for(let i=0;i<egresos.getNumberOfRows();i++){
-      totalEgresos += convertirNumero(egresos.getValue(i,1));
+      totalEgresos += convertirNumero(egresos.getValue(i,4));
     }
   }
 
   document.getElementById("totals").innerHTML = `
-    <div><h3>Ingresos</h3><p>$${totalIngresos.toFixed(2)}</p></div>
-    <div><h3>Egresos</h3><p>$${totalEgresos.toFixed(2)}</p></div>
-    <div><h3>Diferencia</h3><p>$${(totalIngresos-totalEgresos).toFixed(2)}</p></div>
+    <div><h3>Ingresos</h3><p>C$ ${totalIngresos.toFixed(2)}</p></div>
+    <div><h3>Egresos</h3><p>C$ ${totalEgresos.toFixed(2)}</p></div>
+    <div><h3>Diferencia</h3><p>C$ ${(totalIngresos-totalEgresos).toFixed(2)}</p></div>
   `;
 
   const data = google.visualization.arrayToDataTable([
@@ -125,6 +130,7 @@ function render(ingresos, egresos){
   }
 }
 
+// 📄 PDF
 function descargarPDF(){
   const { jsPDF } = window.jspdf;
   html2canvas(document.body).then(canvas=>{
