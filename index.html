@@ -2,38 +2,64 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Sindicato Juan Flores Vivas</title>
+<title>Sindicato Juan Flores Vivas CIPS-MINSA</title>
 
 <script src="https://www.gstatic.com/charts/loader.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <style>
-body{font-family:Arial;margin:0;background:#f4f6f9;}
-section{padding:20px;max-width:1000px;margin:auto;background:#fff;margin-top:20px;border-radius:10px;}
-h1{text-align:center;}
-.summary{display:flex;justify-content:space-around;flex-wrap:wrap;}
-.summary div{background:#e6f0ff;padding:15px;border-radius:10px;width:45%;margin:5px;text-align:center;}
+body { font-family: Arial; margin:0; background:#f9f9f9; }
+h1,h2,h3 { color:#004080; }
+section { padding:20px; max-width:1000px; margin:auto; background:#fff; margin-bottom:20px; border-radius:8px; }
+nav ul { list-style:none; margin:0; padding:0; display:flex; flex-wrap:wrap; background:#004080; }
+nav a { color:#fff; padding:12px; display:block; text-decoration:none; }
+nav a:hover { background:#0066cc; }
+.summary { display:flex; flex-wrap:wrap; justify-content:space-around; }
+.summary div { background:#e6f0ff; padding:10px; border-radius:8px; width:45%; margin:5px; text-align:center; }
+#chart_div { height:300px; }
 </style>
 </head>
 
 <body>
 
-<h1>Sindicato Juan Flores Vivas</h1>
+<h1 style="text-align:center;">Sindicato Juan Flores Vivas CIPS-MINSA</h1>
 
-<section>
+<nav>
+<ul>
+<li><a href="#inicio">Inicio</a></li>
+<li><a href="#registros">Registros</a></li>
+<li><a href="#contacto">Contacto</a></li>
+</ul>
+</nav>
+
+<section id="inicio">
+<h2>Inicio</h2>
+<p>Portal financiero del sindicato.</p>
+</section>
+
+<section id="registros">
+<h2>Dashboard</h2>
 
 <div class="summary" id="totals"></div>
-<div id="chart_div" style="height:300px;"></div>
+<div id="chart_div"></div>
 <div id="tables"></div>
 
-<button onclick="descargarPDF()">Descargar PDF</button>
+<div id="qr_container">
+<h4>QR:</h4>
+<div id="qrcode"></div>
+</div>
+
+<button id="downloadPdf">Descargar PDF</button>
 
 </section>
 
-<section>
-<h3>Archivo completo</h3>
-<iframe src="https://docs.google.com/spreadsheets/d/1N1UuKS1czEdaGZdkCIX9TGPMw1QJP4on/preview" width="100%" height="400"></iframe>
+<section id="contacto">
+<h2>Contacto</h2>
+<p>Email: sindicato@correo.com</p>
 </section>
 
 <script>
@@ -42,7 +68,7 @@ google.charts.load('current', {'packages':['table','corechart']});
 
 const ID = "1N1UuKS1czEdaGZdkCIX9TGPMw1QJP4on";
 
-// 🔥 Convierte cualquier formato a número válido
+// 🔥 Convierte números aunque estén mal formateados
 function convertirNumero(valor){
   if(typeof valor === "number") return valor;
   if(typeof valor === "string"){
@@ -55,7 +81,7 @@ function convertirNumero(valor){
   return 0;
 }
 
-// 🔗 Consulta hojas
+// 🔗 Leer hoja
 function query(sheet, callback){
   const url = `https://docs.google.com/spreadsheets/d/${ID}/gviz/tq?sheet=${encodeURIComponent(sheet)}`;
   const q = new google.visualization.Query(url);
@@ -68,23 +94,21 @@ function query(sheet, callback){
 // 🚀 Cargar datos
 function cargar(){
   google.charts.setOnLoadCallback(()=>{
-    
     query("INGRESOS", ingresos=>{
       query("EGRESOS", egresos=>{
         render(ingresos, egresos);
       });
     });
-
   });
 }
 
-// 📊 Renderizar
+// 📊 Render
 function render(ingresos, egresos){
 
   let totalIngresos=0;
   let totalEgresos=0;
 
-  // 🔥 AQUÍ ESTÁ LA CLAVE → columna 4 (Monto)
+  // 🔥 CORREGIDO → columna 4 (Monto)
   if(ingresos){
     for(let i=0;i<ingresos.getNumberOfRows();i++){
       totalIngresos += convertirNumero(ingresos.getValue(i,4));
@@ -109,8 +133,7 @@ function render(ingresos, egresos){
     ['Egresos',totalEgresos]
   ]);
 
-  const chart = new google.visualization.ColumnChart(document.getElementById('chart_div'));
-  chart.draw(data);
+  new google.visualization.ColumnChart(document.getElementById('chart_div')).draw(data);
 
   const tables = document.getElementById("tables");
   tables.innerHTML="";
@@ -128,10 +151,18 @@ function render(ingresos, egresos){
     tables.appendChild(div);
     new google.visualization.Table(div).draw(egresos);
   }
+
+  // QR
+  document.getElementById("qrcode").innerHTML="";
+  new QRCode(document.getElementById("qrcode"),{
+    text: window.location.href,
+    width:120,
+    height:120
+  });
 }
 
-// 📄 PDF
-function descargarPDF(){
+// PDF
+document.getElementById("downloadPdf").addEventListener("click",()=>{
   const { jsPDF } = window.jspdf;
   html2canvas(document.body).then(canvas=>{
     const img=canvas.toDataURL("image/png");
@@ -139,7 +170,7 @@ function descargarPDF(){
     pdf.addImage(img,'PNG',0,0);
     pdf.save("reporte.pdf");
   });
-}
+});
 
 cargar();
 
