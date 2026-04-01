@@ -5,15 +5,34 @@
 <title>Sindicato Juan Flores Vivas</title>
 
 <script src="https://www.gstatic.com/charts/loader.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
 <style>
-body{font-family:Arial;margin:0;background:#f4f6f9;}
-section{padding:20px;max-width:1000px;margin:auto;background:#fff;margin-top:20px;border-radius:10px;}
-h1{text-align:center;}
-.summary{display:flex;justify-content:space-around;flex-wrap:wrap;}
-.summary div{background:#e6f0ff;padding:15px;border-radius:10px;width:45%;margin:5px;text-align:center;}
+body { font-family: Arial; margin:0; background:#f4f6f9; }
+h1 { text-align:center; padding:20px; color:#003366; }
+
+section {
+  max-width:900px;
+  margin:auto;
+  background:#fff;
+  padding:20px;
+  border-radius:10px;
+}
+
+.summary {
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+}
+
+.card {
+  flex:1;
+  background:#e6f0ff;
+  padding:15px;
+  border-radius:10px;
+  text-align:center;
+}
+
+#chart_div { height:250px; margin-top:20px; }
 </style>
 </head>
 
@@ -23,39 +42,30 @@ h1{text-align:center;}
 
 <section>
 
-<div class="summary" id="totals"></div>
-<div id="chart_div" style="height:300px;"></div>
-<div id="tables"></div>
+<div class="summary">
+  <div class="card"><h3>Ingresos</h3><p id="ingresos">C$ 0</p></div>
+  <div class="card"><h3>Egresos</h3><p id="egresos">C$ 0</p></div>
+  <div class="card"><h3>Diferencia</h3><p id="diferencia">C$ 0</p></div>
+</div>
 
-<button onclick="descargarPDF()">Descargar PDF</button>
+<div id="chart_div"></div>
 
-</section>
-
-<section>
-<h3>Archivo completo</h3>
-<iframe src="https://docs.google.com/spreadsheets/d/1N1UuKS1czEdaGZdkCIX9TGPMw1QJP4on/preview" width="100%" height="400"></iframe>
 </section>
 
 <script>
 
-google.charts.load('current', {'packages':['table','corechart']});
+google.charts.load('current', {'packages':['corechart']});
 
-const ID = "1N1UuKS1czEdaGZdkCIX9TGPMw1QJP4on";
+const SHEET_ID = "1N1UuKS1czEdaGZdkCIX9TGPMw1QJP4on";
 
-function convertirNumero(valor){
-  if(typeof valor === "number") return valor;
-  if(typeof valor === "string"){
-    return parseFloat(
-      valor.replace(/\./g,"")
-           .replace(",",".")
-           .replace(/[^\d.-]/g,"")
-    ) || 0;
-  }
-  return 0;
+function getMonthFilter(date){
+  let d = new Date(date);
+  let now = new Date();
+  return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
 }
 
 function query(sheet, callback){
-  const url = `https://docs.google.com/spreadsheets/d/${ID}/gviz/tq?sheet=${encodeURIComponent(sheet)}`;
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?sheet=${encodeURIComponent(sheet)}&headers=1`;
   const q = new google.visualization.Query(url);
   q.send(res=>{
     if(res.isError()) callback(null);
@@ -63,79 +73,54 @@ function query(sheet, callback){
   });
 }
 
-function cargar(){
+function sumData(data){
+  let total = 0;
+  for(let i=0;i<data.getNumberOfRows();i++){
+    let fecha = data.getValue(i,0);
+    let monto = parseFloat(data.getValue(i,1)) || 0;
+
+    if(getMonthFilter(fecha)){
+      total += monto;
+    }
+  }
+  return total;
+}
+
+function load(){
+
   google.charts.setOnLoadCallback(()=>{
-    
-    query("INGRESOS", ingresos=>{
-      query("EGRESOS", egresos=>{
-        render(ingresos, egresos);
+
+    query("INGRESOS", ingresosData=>{
+      query("EGRESOS", egresosData=>{
+
+        let ingresos = ingresosData ? sumData(ingresosData) : 0;
+        let egresos = egresosData ? sumData(egresosData) : 0;
+        let diferencia = ingresos - egresos;
+
+        document.getElementById("ingresos").innerText = `C$ ${ingresos.toFixed(2)}`;
+        document.getElementById("egresos").innerText = `C$ ${egresos.toFixed(2)}`;
+        document.getElementById("diferencia").innerText = `C$ ${diferencia.toFixed(2)}`;
+
+        const chartData = google.visualization.arrayToDataTable([
+          ['Tipo','Monto'],
+          ['Ingresos', ingresos],
+          ['Egresos', egresos]
+        ]);
+
+        const chart = new google.visualization.ColumnChart(document.getElementById('chart_div'));
+        chart.draw(chartData, {
+          title: "Ingresos vs Egresos (Mes actual)",
+          legend: { position: "none" }
+        });
+
       });
     });
 
   });
+
 }
 
-function render(ingresos, egresos){
-
-  let totalIngresos=0;
-  let totalEgresos=0;
-
-  if(ingresos){
-    for(let i=0;i<ingresos.getNumberOfRows();i++){
-      totalIngresos += convertirNumero(ingresos.getValue(i,1));
-    }
-  }
-
-  if(egresos){
-    for(let i=0;i<egresos.getNumberOfRows();i++){
-      totalEgresos += convertirNumero(egresos.getValue(i,1));
-    }
-  }
-
-  document.getElementById("totals").innerHTML = `
-    <div><h3>Ingresos</h3><p>$${totalIngresos.toFixed(2)}</p></div>
-    <div><h3>Egresos</h3><p>$${totalEgresos.toFixed(2)}</p></div>
-    <div><h3>Diferencia</h3><p>$${(totalIngresos-totalEgresos).toFixed(2)}</p></div>
-  `;
-
-  const data = google.visualization.arrayToDataTable([
-    ['Tipo','Monto'],
-    ['Ingresos',totalIngresos],
-    ['Egresos',totalEgresos]
-  ]);
-
-  const chart = new google.visualization.ColumnChart(document.getElementById('chart_div'));
-  chart.draw(data);
-
-  const tables = document.getElementById("tables");
-  tables.innerHTML="";
-
-  if(ingresos){
-    let div=document.createElement("div");
-    tables.appendChild(document.createElement("h3")).innerText="Ingresos";
-    tables.appendChild(div);
-    new google.visualization.Table(div).draw(ingresos);
-  }
-
-  if(egresos){
-    let div=document.createElement("div");
-    tables.appendChild(document.createElement("h3")).innerText="Egresos";
-    tables.appendChild(div);
-    new google.visualization.Table(div).draw(egresos);
-  }
-}
-
-function descargarPDF(){
-  const { jsPDF } = window.jspdf;
-  html2canvas(document.body).then(canvas=>{
-    const img=canvas.toDataURL("image/png");
-    const pdf=new jsPDF();
-    pdf.addImage(img,'PNG',0,0);
-    pdf.save("reporte.pdf");
-  });
-}
-
-cargar();
+load();
 
 </script>
 
