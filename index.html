@@ -16,12 +16,13 @@ section {
   background:#fff;
   padding:20px;
   border-radius:10px;
+  margin-bottom:20px;
 }
 
 .summary {
   display:flex;
-  justify-content:space-between;
   gap:10px;
+  flex-wrap:wrap;
 }
 
 .card {
@@ -30,9 +31,11 @@ section {
   padding:15px;
   border-radius:10px;
   text-align:center;
+  min-width:250px;
 }
 
 #chart_div { height:250px; margin-top:20px; }
+iframe { border:none; border-radius:10px; }
 </style>
 </head>
 
@@ -52,36 +55,46 @@ section {
 
 </section>
 
+<section>
+<h3>Archivo completo</h3>
+<iframe 
+  src="https://docs.google.com/spreadsheets/d/1N1UuKS1czEdaGZdkCIX9TGPMw1QJP4on/preview" 
+  width="100%" 
+  height="400">
+</iframe>
+</section>
+
 <script>
 
 google.charts.load('current', {'packages':['corechart']});
 
 const SHEET_ID = "1N1UuKS1czEdaGZdkCIX9TGPMw1QJP4on";
 
-function getMonthFilter(date){
-  let d = new Date(date);
-  let now = new Date();
-  return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-}
-
 function query(sheet, callback){
   const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?sheet=${encodeURIComponent(sheet)}&headers=1`;
   const q = new google.visualization.Query(url);
   q.send(res=>{
-    if(res.isError()) callback(null);
-    else callback(res.getDataTable());
+    if(res.isError()) {
+      console.error("Error en hoja:", sheet);
+      callback(null);
+    } else {
+      callback(res.getDataTable());
+    }
   });
 }
 
 function sumData(data){
   let total = 0;
   for(let i=0;i<data.getNumberOfRows();i++){
-    let fecha = data.getValue(i,0);
-    let monto = parseFloat(data.getValue(i,1)) || 0;
+    let valor = data.getValue(i,1);
 
-    if(getMonthFilter(fecha)){
-      total += monto;
+    // Limpia valores tipo "C$ 3,000"
+    if(typeof valor === "string"){
+      valor = valor.replace(/[^\d.-]/g, "");
     }
+
+    let monto = parseFloat(valor) || 0;
+    total += monto;
   }
   return total;
 }
@@ -109,7 +122,7 @@ function load(){
 
         const chart = new google.visualization.ColumnChart(document.getElementById('chart_div'));
         chart.draw(chartData, {
-          title: "Ingresos vs Egresos (Mes actual)",
+          title: "Ingresos vs Egresos",
           legend: { position: "none" }
         });
 
