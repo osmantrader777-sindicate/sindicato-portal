@@ -35,6 +35,13 @@ section {
 }
 
 #chart_div { height:250px; margin-top:20px; }
+
+select {
+  padding:8px;
+  margin-bottom:15px;
+  width:100%;
+}
+
 iframe { border:none; border-radius:10px; }
 </style>
 </head>
@@ -44,6 +51,8 @@ iframe { border:none; border-radius:10px; }
 <h1>Sindicato Juan Flores Vivas</h1>
 
 <section>
+
+<select id="mesSelector"></select>
 
 <div class="summary">
   <div class="card"><h3>Ingresos</h3><p id="ingresos">C$ 0</p></div>
@@ -70,6 +79,15 @@ google.charts.load('current', {'packages':['corechart']});
 
 const SHEET_ID = "1N1UuKS1czEdaGZdkCIX9TGPMw1QJP4on";
 
+const meses = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+
+function limpiarNumero(valor){
+  if(typeof valor === "string"){
+    valor = valor.replace(/[^\d.-]/g, "");
+  }
+  return parseFloat(valor) || 0;
+}
+
 function query(sheet, callback){
   const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?sheet=${encodeURIComponent(sheet)}&headers=1`;
   const q = new google.visualization.Query(url);
@@ -83,57 +101,76 @@ function query(sheet, callback){
   });
 }
 
-function sumData(data){
+function calcularPorMes(data, mesIndex, year){
   let total = 0;
+
   for(let i=0;i<data.getNumberOfRows();i++){
-    let valor = data.getValue(i,1);
+    let fecha = new Date(data.getValue(i,0));
+    let monto = limpiarNumero(data.getValue(i,1));
 
-    // Limpia valores tipo "C$ 3,000"
-    if(typeof valor === "string"){
-      valor = valor.replace(/[^\d.-]/g, "");
+    if(fecha instanceof Date && !isNaN(fecha)){
+      if(fecha.getMonth() === mesIndex && fecha.getFullYear() === year){
+        total += monto;
+      }
     }
-
-    let monto = parseFloat(valor) || 0;
-    total += monto;
   }
+
   return total;
 }
 
-function load(){
+function cargarDatos(mesIndex, year){
 
-  google.charts.setOnLoadCallback(()=>{
+  query("INGRESOS", ingresosData=>{
+    query("EGRESOS", egresosData=>{
 
-    query("INGRESOS", ingresosData=>{
-      query("EGRESOS", egresosData=>{
+      let ingresos = ingresosData ? calcularPorMes(ingresosData, mesIndex, year) : 0;
+      let egresos = egresosData ? calcularPorMes(egresosData, mesIndex, year) : 0;
+      let diferencia = ingresos - egresos;
 
-        let ingresos = ingresosData ? sumData(ingresosData) : 0;
-        let egresos = egresosData ? sumData(egresosData) : 0;
-        let diferencia = ingresos - egresos;
+      document.getElementById("ingresos").innerText = `C$ ${ingresos.toFixed(2)}`;
+      document.getElementById("egresos").innerText = `C$ ${egresos.toFixed(2)}`;
+      document.getElementById("diferencia").innerText = `C$ ${diferencia.toFixed(2)}`;
 
-        document.getElementById("ingresos").innerText = `C$ ${ingresos.toFixed(2)}`;
-        document.getElementById("egresos").innerText = `C$ ${egresos.toFixed(2)}`;
-        document.getElementById("diferencia").innerText = `C$ ${diferencia.toFixed(2)}`;
+      const chartData = google.visualization.arrayToDataTable([
+        ['Tipo','Monto'],
+        ['Ingresos', ingresos],
+        ['Egresos', egresos]
+      ]);
 
-        const chartData = google.visualization.arrayToDataTable([
-          ['Tipo','Monto'],
-          ['Ingresos', ingresos],
-          ['Egresos', egresos]
-        ]);
-
-        const chart = new google.visualization.ColumnChart(document.getElementById('chart_div'));
-        chart.draw(chartData, {
-          title: "Ingresos vs Egresos",
-          legend: { position: "none" }
-        });
-
+      const chart = new google.visualization.ColumnChart(document.getElementById('chart_div'));
+      chart.draw(chartData, {
+        title: `Reporte - ${meses[mesIndex]} ${year}`,
+        legend: { position: "none" }
       });
-    });
 
+    });
   });
 
 }
 
-load();
+function iniciar(){
+
+  const select = document.getElementById("mesSelector");
+  const year = new Date().getFullYear();
+
+  meses.forEach((mes, index)=>{
+    let option = document.createElement("option");
+    option.value = index;
+    option.text = mes + " " + year;
+    select.appendChild(option);
+  });
+
+  select.addEventListener("change", ()=>{
+    cargarDatos(parseInt(select.value), year);
+  });
+
+  const mesActual = new Date().getMonth();
+  select.value = mesActual;
+  cargarDatos(mesActual, year);
+
+}
+
+google.charts.setOnLoadCallback(iniciar);
 
 </script>
 
