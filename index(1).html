@@ -1,0 +1,102 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Portal Sindicato CIPS-MINSA</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Segoe UI,Arial;background:#eef3f8;color:#222}
+header{background:linear-gradient(90deg,#004b87,#0b7cc1);color:#fff;padding:20px;text-align:center}
+nav{display:flex;justify-content:center;flex-wrap:wrap;background:#02345e}
+nav a{color:#fff;padding:14px 18px;text-decoration:none}
+nav a:hover{background:#0b7cc1}
+.hero{padding:70px 20px;text-align:center;background:#fff}
+.hero h1{font-size:42px;margin:0}.hero p{max-width:700px;margin:20px auto}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px;padding:30px}
+.card{background:#fff;border-radius:14px;padding:20px;box-shadow:0 4px 14px rgba(0,0,0,.12)}
+section{padding:20px 30px}
+h2{color:#004b87}
+input,textarea{width:100%;padding:10px;margin:8px 0}
+button{background:#0b7cc1;color:#fff;border:0;padding:12px 18px;border-radius:8px;cursor:pointer}
+footer{background:#02345e;color:#fff;text-align:center;padding:20px;margin-top:40px}
+small{color:#666}
+</style>
+</head>
+<body>
+<header>
+<h1>Sindicato CIPS‑MINSA</h1>
+<p>Portal Institucional</p>
+</header>
+<nav>
+<a href="#inicio">Inicio</a>
+<a href="#galeria">Galería</a>
+<a href="#documentos">Documentos</a>
+<a href="#videos">Videos</a>
+<a href="#transparencia">Transparencia</a>
+<a href="#contacto">Contacto</a>
+<a href="#admin">Administrador</a>
+</nav>
+
+<div class="hero" id="inicio">
+<h1>Bienvenidos</h1>
+<p>Portal institucional del Sindicato. Las publicaciones creadas desde el administrador aparecen automáticamente abajo.</p>
+</div>
+
+<section>
+<h2>Noticias recientes</h2>
+<div id="news" class="grid"></div>
+</section>
+
+<section id="galeria">
+<h2>Galería</h2>
+<div id="gallery" class="grid"></div>
+</section>
+
+<section id="documentos"><h2>Documentos</h2><div class="card">Espacio preparado para publicar PDF.</div></section>
+<section id="videos"><h2>Videos</h2><div id="videosList" class="grid"></div></section>
+<section id="transparencia"><h2>Transparencia</h2><div class="card">Aquí puedes integrar tu módulo financiero existente.</div></section>
+<section id="contacto"><h2>Contacto</h2><div class="card">Correo, teléfonos y ubicación del sindicato.</div></section>
+
+<section id="admin">
+<h2>Administrador</h2>
+<div class="card">
+<form id="frm">
+<input id="titulo" placeholder="Título" required>
+<input id="fecha" type="date" required>
+<textarea id="descripcion" placeholder="Descripción"></textarea>
+<input id="youtube" placeholder="https://youtube.com/...">
+<button>Publicar actividad</button>
+</form>
+</div>
+</section>
+
+<footer>© 2026 Sindicato CIPS‑MINSA</footer>
+
+<script>
+const k="actividades";
+const news=document.getElementById("news");
+const gallery=document.getElementById("gallery");
+const videos=document.getElementById("videosList");
+function ytEmbed(u){if(!u)return"";let id=u.split("v=")[1]||u.split("/").pop();id=id.split("&")[0];return "https://www.youtube.com/embed/"+id;}
+function render(){
+ const arr=JSON.parse(localStorage.getItem(k)||"[]");
+ news.innerHTML=gallery.innerHTML=videos.innerHTML="";
+ if(!arr.length){news.innerHTML='<div class="card">No hay actividades.</div>';return;}
+ arr.forEach(a=>{
+ news.innerHTML+=`<div class="card"><h3>${a.titulo}</h3><small>${a.fecha}</small><p>${a.descripcion}</p></div>`;
+ gallery.innerHTML+=`<div class="card"><h3>${a.titulo}</h3><p>${a.descripcion}</p></div>`;
+ if(a.youtube)videos.innerHTML+=`<div class="card"><h3>${a.titulo}</h3><iframe width="100%" height="200" src="${ytEmbed(a.youtube)}" allowfullscreen></iframe></div>`;
+ });
+}
+render();
+frm.onsubmit=e=>{
+e.preventDefault();
+let arr=JSON.parse(localStorage.getItem(k)||"[]");
+arr.unshift({titulo:titulo.value,fecha:fecha.value,descripcion:descripcion.value,youtube:youtube.value});
+localStorage.setItem(k,JSON.stringify(arr));
+frm.reset();render();alert("Actividad publicada");
+}
+</script>
+</body>
+</html>
