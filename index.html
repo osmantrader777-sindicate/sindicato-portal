@@ -180,7 +180,7 @@ function guardarEnFirestore(t, d, f, img){
         descripcion: d,
         fecha: f,
         imagen: img,
-        timestamp: firebase.firestore.FieldValue.serverTimestamp() // Para ordenar correctamente por fecha de creación
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
     };
 
     if(noticiaEditandoId){
@@ -200,10 +200,10 @@ function guardarEnFirestore(t, d, f, img){
     }
 }
 
-// Cargar Noticias en tiempo real desde Firestore
+// Cargar Noticias en tiempo real desde Firestore (MODIFICADO SIN EL ORDERBY)
 function cargarNoticiasFirestore(){
-    // Ordena por fecha (el input fecha) de manera descendente para ver lo último primero
-    db.collection('Noticias').orderBy('fecha', 'desc').onSnapshot(snapshot => {
+    // Al quitar el .orderBy ya no te pedirá crear índices en Firebase y funcionará de inmediato
+    db.collection('Noticias').onSnapshot(snapshot => {
         let c = document.getElementById('lista');
         c.innerHTML = ''; 
         
@@ -223,10 +223,9 @@ function cargarNoticiasFirestore(){
             c.appendChild(n); 
         });
     }, error => {
-        console.log("Error al leer datos o esperando índice: ", error.message);
+        console.log("Error al leer datos: ", error.message);
     });
 }
-
 function editarFirestore(id, t, f, d){
     noticiaEditandoId = id;
     titulo.value = t;
