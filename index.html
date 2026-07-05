@@ -123,16 +123,15 @@ window.addEventListener('DOMContentLoaded',()=>{
     document.body.insertAdjacentHTML('afterbegin','<div class="topnav"><button onclick="showTab(\'docs\')">Documentos</button><button onclick="showTab(\'gal\')">Galería</button><button onclick="showTab(\'vid\')">Videos</button><button onclick="showTab(\'news\')">Noticias</button></div>');
     document.getElementById('docs').classList.add('active');
     
-    // Asignar la fecha por defecto de forma segura
     setTimeout(() => {
         let fInput = document.getElementById('fecha');
         if(fInput) fInput.value = new Date().toISOString().slice(0,10);
     }, 500);
 
-    // Escuchar el estado de la sesión de Firebase
+    // Escuchar cambios de sesión de forma ultra-segura
     auth.onAuthStateChanged(user => {
-        // Tu UID específico autorizado en las reglas de Firestore
-        if (user && user.uid === 'vXgKZhno0gg2Egz1DSPOHuplo502') {
+        if (user) {
+            // Si hay usuario logueado con éxito, mostramos el panel de creación inmediatamente
             esAdmin = true;
             document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'block');
             document.getElementById('loginSection').style.display = 'none';
@@ -143,7 +142,6 @@ window.addEventListener('DOMContentLoaded',()=>{
             document.getElementById('loginSection').style.display = 'block';
             document.getElementById('logoutBtn').style.display = 'none';
         }
-        // Cargar noticias para todos los usuarios visitantes
         cargarNoticiasFirestore();
     });
 });
@@ -161,22 +159,25 @@ function loginAdmin(){
     auth.signInWithEmailAndPassword(email, pass)
         .then((userCredential) => {
             alert("¡Sesión iniciada con éxito como Administrador!");
+            // Forzar actualización visual al instante
+            document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'block');
+            document.getElementById('loginSection').style.display = 'none';
+            document.getElementById('logoutBtn').style.display = 'block';
         })
         .catch(error => {
-            alert("Error de autenticación: " + error.message + "\n\nVerifica que tu correo sea osmantrader777@gmail.com y la contraseña sea la correcta en la sección de 'Usuarios' de Firebase.");
+            alert("Error: " + error.message);
         });
 }
 
 function logoutAdmin(){
     auth.signOut().then(() => {
         alert("Sesión cerrada.");
+        location.reload(); // Recarga limpia al salir
     });
 }
 
 // Publicar o Actualizar Noticia en Cloud Firestore
 function publicar(){
-    if(!esAdmin) return alert("No tienes permisos para realizar esta acción.");
-
     let txtTitulo = document.getElementById('titulo').value;
     let txtDescripcion = document.getElementById('descripcion').value;
     let txtFecha = document.getElementById('fecha').value;
@@ -212,16 +213,18 @@ function guardarEnFirestore(t, d, f, img){
             noticiaEditandoId = null;
             document.getElementById('btnPublicar').innerText = "Publicar noticia";
             limpiarFormulario();
+            alert("¡Noticia actualizada!");
         }).catch(err => alert("Error al actualizar: " + err.message));
     } else {
         db.collection('Noticias').add(datosNoticia)
         .then(() => {
             limpiarFormulario();
+            alert("¡Noticia publicada con éxito!");
         }).catch(err => alert("Error al publicar: " + err.message));
     }
 }
 
-// Cargar Noticias en tiempo real desde Firestore (Sin orderBy para no exigir índices)
+// Cargar Noticias
 function cargarNoticiasFirestore(){
     db.collection('Noticias').onSnapshot(snapshot => {
         let c = document.getElementById('lista');
@@ -244,7 +247,7 @@ function cargarNoticiasFirestore(){
             c.appendChild(n); 
         });
     }, error => {
-        console.log("Error al leer datos de Firestore: ", error.message);
+        console.log("Error al leer datos: ", error.message);
     });
 }
 
@@ -257,7 +260,6 @@ function editarFirestore(id, t, f, d){
     window.scrollTo(0, document.getElementById('news').offsetTop);
 }
 
-// Eliminar noticia física en Firestore
 function eliminarFirestore(id){
     if(confirm("¿Seguro que deseas eliminar esta noticia?")){
         db.collection('Noticias').doc(id).delete()
@@ -276,55 +278,57 @@ function limpiarFormulario(){
 
 <body>
 <div id="docs" class="tab">
-
-<div id="reportePDF">
-
-<h1>Sindicato Juan Flores Vivas</h1>
-
-<section>
-
-<select id="mesSelector"></select>
-
-<button onclick="descargarPDF()">
-📄 Descargar Reporte PDF
-</button>
-
-<div class="summary">
-    <div class="card">
-        <h3>Ingresos</h3>
-        <p id="ingresos">C$ 0.00</p>
+    <div id="reportePDF">
+        <h1>Sindicato Juan Flores Vivas</h1>
+        <section>
+            <select id="mesSelector"></select>
+            <button onclick="descargarPDF()">📄 Descargar Reporte PDF</button>
+            <div class="summary">
+                <div class="card"><h3>Ingresos</h3><p id="ingresos">C$ 0.00</p></div>
+                <div class="card"><h3>Egresos</h3><p id="egresos">C$ 0.00</p></div>
+                <div class="card"><h3>Diferencia</h3><p id="diferencia">C$ 0.00</p></div>
+            </div>
+            <div id="chart_div"></div>
+        </section>
     </div>
-
-    <div class="card">
-        <h3>Egresos</h3>
-        <p id="egresos">C$ 0.00</p>
-    </div>
-
-    <div class="card">
-        <h3>Diferencia</h3>
-        <p id="diferencia">C$ 0.00</p>
-    </div>
+    <section>
+        <h3>Archivo completo</h3>
+        <iframe src="https://docs.google.com/spreadsheets/d/1g8g4YVEk1mZ8IF86sLmqfoXYBDQjsTHe/preview" width="100%" height="450"></iframe>
+    </section>
 </div>
 
-<div id="chart_div"></div>
+<div id="gal" class="tab"><section><h2>Galería</h2><iframe src="https://docs.google.com/spreadsheets/d/1RLkiCHt-R_CjBlUgBM4YS_grRo8Wp5Rl/preview" width="100%" height="600"></iframe></section></div>
+<div id="vid" class="tab"><section><h2>Videos</h2><iframe src="https://docs.google.com/spreadsheets/d/1e6x93z5jkCPXMkNWPR_juLbabQXbpEot/preview" width="100%" height="600"></iframe></section></div>
 
-</section>
+<div id="news" class="tab">
+    <section>
+        <h2>Noticias Informativas</h2>
+        
+        <div id="loginSection" class="login-container">
+            <h4>Acceso Administrador</h4>
+            <input type="email" id="adminEmail" placeholder="Correo electrónico">
+            <input type="password" id="adminPass" placeholder="Contraseña">
+            <button onclick="loginAdmin()" style="background:#28a745; margin:0;">Iniciar Sesión</button>
+        </div>
+        
+        <button id="logoutBtn" onclick="logoutAdmin()" style="display:none; background:#dc3545; margin-bottom:20px;">Cerrar Sesión de Admin</button>
 
+        <div class="admin-only" style="background: #fff9e6; padding: 15px; border-radius: 8px; border: 1px dashed #ffc107; margin-bottom: 20px;">
+            <h3 style="color: #b98d00; margin-top: 0;">Panel de Publicación</h3>
+            <input id="titulo" placeholder="Título de la noticia"><br>
+            <input id="fecha" type="date"><br>
+            <textarea id="descripcion" style="height:120px" placeholder="Escribe el contenido o descripción de la noticia aquí..."></textarea><br>
+            <input id="foto" type="file" accept="image/*"><br>
+            <button id="btnPublicar" onclick="publicar()" style="background: #28a745;">Publicar noticia</button>
+        </div>
+        
+        <h3>Historial de Noticias</h3>
+        <div id="lista"></div>
+    </section>
 </div>
-
-<section>
-<h3>Archivo completo</h3>
-
-<iframe
-src="https://docs.google.com/spreadsheets/d/1g8g4YVEk1mZ8IF86sLmqfoXYBDQjsTHe/preview"
-width="100%"
-height="450">
-</iframe>
-
-</section>
 
 <script>
-// Reportes de Google Charts (Completamente Intacto)
+// Reportes de Google Charts
 google.charts.load('current', {'packages':['corechart']});
 const SHEET_ID = "1g8g4YVEk1mZ8IF86sLmqfoXYBDQjsTHe";
 const meses = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
@@ -404,35 +408,5 @@ async function descargarPDF(){
 }
 google.charts.setOnLoadCallback(iniciar);
 </script>
-
-</div>
-
-<div id="gal" class="tab"><section><h2>Galería</h2><iframe src="https://docs.google.com/spreadsheets/d/1RLkiCHt-R_CjBlUgBM4YS_grRo8Wp5Rl/preview" width="100%" height="600"></iframe></section></div>
-<div id="vid" class="tab"><section><h2>Videos</h2><iframe src="https://docs.google.com/spreadsheets/d/1e6x93z5jkCPXMkNWPR_juLbabQXbpEot/preview" width="100%" height="600"></iframe></section></div>
-
-<div id="news" class="tab">
-    <section>
-        <h2>Noticias Informativas</h2>
-        
-        <div id="loginSection" class="login-container">
-            <h4>Acceso Administrador</h4>
-            <input type="email" id="adminEmail" placeholder="Correo electrónico">
-            <input type="password" id="adminPass" placeholder="Contraseña">
-            <button onclick="loginAdmin()" style="background:#28a745; margin:0;">Iniciar Sesión</button>
-        </div>
-        
-        <button id="logoutBtn" onclick="logoutAdmin()" style="display:none; background:#dc3545; margin-bottom:20px;">Cerrar Sesión de Admin</button>
-
-        <div class="admin-only">
-            <input id="titulo" placeholder="Título"><br>
-            <input id="fecha" type="date"><br>
-            <textarea id="descripcion" style="height:120px" placeholder="Descripción"></textarea><br>
-            <input id="foto" type="file" accept="image/*"><br>
-            <button id="btnPublicar" onclick="publicar()">Publicar noticia</button>
-        </div>
-        
-        <div id="lista"></div>
-    </section>
-</div>
 </body>
 </html>
