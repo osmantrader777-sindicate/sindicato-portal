@@ -128,16 +128,17 @@ window.addEventListener('DOMContentLoaded',()=>{
         if(fInput) fInput.value = new Date().toISOString().slice(0,10);
     }, 500);
 
-    // Escuchar cambios de sesión de forma ultra-segura
+    // Escuchar el estado de autenticación de Firebase de forma robusta
     auth.onAuthStateChanged(user => {
         if (user) {
-            // Si hay usuario logueado con éxito, mostramos el panel de creación inmediatamente
             esAdmin = true;
+            // Mostrar panel de publicación y botón de salir
             document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'block');
             document.getElementById('loginSection').style.display = 'none';
             document.getElementById('logoutBtn').style.display = 'block';
         } else {
             esAdmin = false;
+            // Ocultar controles y mostrar el login limpio
             document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
             document.getElementById('loginSection').style.display = 'block';
             document.getElementById('logoutBtn').style.display = 'none';
@@ -146,7 +147,7 @@ window.addEventListener('DOMContentLoaded',()=>{
     });
 });
 
-// Manejo de Login y Logout
+// Manejo definitivo de Login y Logout
 function loginAdmin(){
     let email = document.getElementById('adminEmail').value.trim();
     let pass = document.getElementById('adminPass').value;
@@ -159,10 +160,14 @@ function loginAdmin(){
     auth.signInWithEmailAndPassword(email, pass)
         .then((userCredential) => {
             alert("¡Sesión iniciada con éxito como Administrador!");
-            // Forzar actualización visual al instante
+            
+            // Forzar renderizado visual instantáneo
+            esAdmin = true;
             document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'block');
             document.getElementById('loginSection').style.display = 'none';
             document.getElementById('logoutBtn').style.display = 'block';
+            
+            cargarNoticiasFirestore();
         })
         .catch(error => {
             alert("Error: " + error.message);
@@ -172,7 +177,7 @@ function loginAdmin(){
 function logoutAdmin(){
     auth.signOut().then(() => {
         alert("Sesión cerrada.");
-        location.reload(); // Recarga limpia al salir
+        location.reload();
     });
 }
 
@@ -224,9 +229,9 @@ function guardarEnFirestore(t, d, f, img){
     }
 }
 
-// Cargar Noticias
+// Cargar Noticias en tiempo real
 function cargarNoticiasFirestore(){
-    db.collection('Noticias').onSnapshot(snapshot => {
+    db.collection('Noticias').orderBy('timestamp', 'desc').onSnapshot(snapshot => {
         let c = document.getElementById('lista');
         if(!c) return;
         c.innerHTML = ''; 
