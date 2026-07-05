@@ -1,4 +1,3 @@
-Código actual en github
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -9,6 +8,10 @@ Código actual en github
 <script src="https://www.gstatic.com/charts/loader.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
 <style>
 body{
@@ -52,10 +55,11 @@ section{
     margin-top:20px;
 }
 
-select{
+select, input, textarea{
     width:100%;
     padding:10px;
     margin-bottom:10px;
+    box-sizing: border-box;
 }
 
 button{
@@ -81,44 +85,175 @@ iframe{
 </style>
 
 <style>
-.topnav{display:flex;gap:8px;justify-content:center;background:#003366;padding:10px;position:sticky;top:0}
+.topnav{display:flex;gap:8px;justify-content:center;background:#003366;padding:10px;position:sticky;top:0;z-index:1000;}
 .topnav button{width:auto;margin:0;background:#0b5ed7}
 .tab{display:none}.tab.active{display:block}
-.news-card{border:1px solid #ccc;border-radius:8px;padding:10px;margin:10px 0}
+.news-card{border:1px solid #ccc;border-radius:8px;padding:10px;margin:10px 0;background:#fff;}
+.admin-only{display:none;} 
+.login-container{background:#f0f0f0; padding:15px; border-radius:8px; margin-bottom:20px;}
 </style>
+
 <script>
-function showTab(id){document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');}
+// ==========================================
+// TUS CREDENCIALES REALES DE FIREBASE
+// ==========================================
+const firebaseConfig = {
+  apiKey: "AIzaSyBXrIndvikCMg47NfN6NzmB3lYpui2AfWQ",
+  authDomain: "noticias-sindicato-cips.firebaseapp.com",
+  projectId: "noticias-sindicato-cips",
+  storageBucket: "noticias-sindicato-cips.firebasestorage.app",
+  messagingSenderId: "113761910632",
+  appId: "1:113761910632:web:d0ea2b15a4d82fbe0f20dd"
+};
+
+// Inicializar Firebase
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore(); // Cambiado a Firestore según tus reglas
+
+let noticiaEditandoId = null; 
+let esAdmin = false; 
+
+function showTab(id){
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+}
+
 window.addEventListener('DOMContentLoaded',()=>{
-document.body.insertAdjacentHTML('afterbegin','<div class="topnav"><button onclick="showTab(\'docs\')">Documentos</button><button onclick="showTab(\'gal\')">Galería</button><button onclick="showTab(\'vid\')">Videos</button><button onclick="showTab(\'news\')">Noticias</button></div>');
-document.getElementById('docs').classList.add('active');
-document.getElementById('fecha').value=new Date().toISOString().slice(0,10);
+    document.body.insertAdjacentHTML('afterbegin','<div class="topnav"><button onclick="showTab(\'docs\')">Documentos</button><button onclick="showTab(\'gal\')">Galería</button><button onclick="showTab(\'vid\')">Videos</button><button onclick="showTab(\'news\')">Noticias</button></div>');
+    document.getElementById('docs').classList.add('active');
+    document.getElementById('fecha').value=new Date().toISOString().slice(0,10);
+
+    // Escuchar el estado de la sesión de Firebase
+    auth.onAuthStateChanged(user => {
+        // Tu UID específico autorizado en las reglas de Firestore
+        if (user && user.uid === 'vXgKZhno0gg2Egz1DSPOHuplo502') {
+            esAdmin = true;
+            document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'block');
+            document.getElementById('loginSection').style.display = 'none';
+            document.getElementById('logoutBtn').style.display = 'block';
+        } else {
+            esAdmin = false;
+            document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
+            document.getElementById('loginSection').style.display = 'block';
+            document.getElementById('logoutBtn').style.display = 'none';
+        }
+        // Cargar noticias para todos
+        cargarNoticiasFirestore();
+    });
 });
+
+// Manejo de Login y Logout
+function loginAdmin(){
+    let email = document.getElementById('adminEmail').value;
+    let pass = document.getElementById('adminPass').value;
+    
+    auth.signInWithEmailAndPassword(email, pass)
+        .catch(error => alert("Error de autenticación: " + error.message));
+}
+
+function logoutAdmin(){
+    auth.signOut();
+}
+
+// Publicar o Actualizar Noticia en Cloud Firestore
 function publicar(){
-let t=titulo.value,d=descripcion.value,f=fecha.value;
-if(!t&&!d)return;
-let file=foto.files[0];
-if(file){let r=new FileReader();r.onload=e=>crear(t,d,f,e.target.result);r.readAsDataURL(file);}
-else crear(t,d,f,'');
+    if(!esAdmin) return alert("No tienes permisos para realizar esta acción.");
+
+    let t=titulo.value, d=descripcion.value, f=fecha.value;
+    if(!t && !d) return;
+
+    let file = foto.files[0];
+    if(file){
+        let r=new FileReader();
+        r.onload=e=>guardarEnFirestore(t,d,f,e.target.result);
+        r.readAsDataURL(file);
+    } else {
+        let imgExistente = noticiaEditandoId ? document.getElementById('img_' + noticiaEditandoId)?.src || '' : '';
+        guardarEnFirestore(t,d,f,imgExistente);
+    }
 }
-function crear(t,d,f,img){
-let c=document.getElementById('lista');
-let n=document.createElement('div');
-n.className='news-card';
-n.innerHTML='<h3>'+t+'</h3><small>'+f+'</small><p>'+d+'</p>'+(img?'<img src="'+img+'" style="max-width:100%">':'')+'<br><button onclick="editar(this)">Editar</button> <button onclick="this.parentNode.remove()">Eliminar</button>';
-c.prepend(n);
-titulo.value='';descripcion.value='';foto.value='';
+
+function guardarEnFirestore(t, d, f, img){
+    let datosNoticia = {
+        titulo: t,
+        descripcion: d,
+        fecha: f,
+        imagen: img,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp() // Para ordenar correctamente por fecha de creación
+    };
+
+    if(noticiaEditandoId){
+        // Actualizar en la colección 'Noticias'
+        db.collection('Noticias').doc(noticiaEditandoId).update(datosNoticia)
+        .then(() => {
+            noticiaEditandoId = null;
+            document.getElementById('btnPublicar').innerText = "Publicar noticia";
+            limpiarFormulario();
+        }).catch(err => alert("Error al actualizar: " + err.message));
+    } else {
+        // Crear nueva noticia en la colección 'Noticias'
+        db.collection('Noticias').add(datosNoticia)
+        .then(() => {
+            limpiarFormulario();
+        }).catch(err => alert("Error al publicar: " + err.message));
+    }
 }
-function editar(b){
-let p=b.parentNode;
-titulo.value=p.querySelector('h3').innerText;
-fecha.value=p.querySelector('small').innerText;
-descripcion.value=p.querySelector('p').innerText;
-p.remove();
+
+// Cargar Noticias en tiempo real desde Firestore
+function cargarNoticiasFirestore(){
+    // Ordena por fecha (el input fecha) de manera descendente para ver lo último primero
+    db.collection('Noticias').orderBy('fecha', 'desc').onSnapshot(snapshot => {
+        let c = document.getElementById('lista');
+        c.innerHTML = ''; 
+        
+        snapshot.forEach(doc => {
+            let id = doc.id;
+            let data = doc.data();
+            
+            let n = document.createElement('div');
+            n.className = 'news-card';
+            
+            let botonesAdmin = esAdmin ? 
+                `<br><button style="width:auto; margin-right:5px; background:#ffc107; color:#000" onclick="editarFirestore('${id}', '${data.titulo}', '${data.fecha}', \`${data.descripcion.replace(/'/g, "\\'")}\`)">Editar</button> 
+                 <button style="width:auto; background:#dc3545" onclick="eliminarFirestore('${id}')">Eliminar</button>` 
+                : '';
+
+            n.innerHTML = '<h3>'+data.titulo+'</h3><small>'+data.fecha+'</small><p>'+data.descripcion+'</p>'+(data.imagen?'<img id="img_'+id+'" src="'+data.imagen+'" style="max-width:100%">':'')+botonesAdmin;
+            c.appendChild(n); 
+        });
+    }, error => {
+        console.log("Error al leer datos o esperando índice: ", error.message);
+    });
+}
+
+function editarFirestore(id, t, f, d){
+    noticiaEditandoId = id;
+    titulo.value = t;
+    fecha.value = f;
+    descripcion.value = d;
+    document.getElementById('btnPublicar').innerText = "Guardar Cambios";
+    window.scrollTo(0, document.getElementById('news').offsetTop);
+}
+
+function eliminarFirestore(id){
+    if(confirm("¿Seguro que deseas eliminar esta noticia?")){
+        db.collection('Noticias').doc(id).delete()
+        .catch(err => alert("Error al eliminar: " + err.message));
+    }
+}
+
+function limpiarFormulario(){
+    titulo.value='';
+    descripcion.value='';
+    foto.value='';
+    fecha.value=new Date().toISOString().slice(0,10);
 }
 </script>
 </head>
 
-<body><div id="docs" class="tab">
+<body>
+<div id="docs" class="tab">
 
 <div id="reportePDF">
 
@@ -167,212 +302,115 @@ height="450">
 </section>
 
 <script>
-
+// Reportes de Google Charts (sin alteraciones)
 google.charts.load('current', {'packages':['corechart']});
-
 const SHEET_ID = "1g8g4YVEk1mZ8IF86sLmqfoXYBDQjsTHe";
-
-const meses = [
-"Enero","Febrero","Marzo","Abril",
-"Mayo","Junio","Julio","Agosto",
-"Septiembre","Octubre","Noviembre","Diciembre"
-];
+const meses = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 
 function limpiarNumero(valor){
-    if(typeof valor === "string"){
-        valor = valor.replace(/[^\d.-]/g,"");
-    }
+    if(typeof valor === "string"){ valor = valor.replace(/[^\d.-]/g,""); }
     return parseFloat(valor) || 0;
 }
 
 function query(sheet, callback){
-
-    const url =
-    `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?sheet=${encodeURIComponent(sheet)}&headers=1`;
-
+    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?sheet=${encodeURIComponent(sheet)}&headers=1`;
     const q = new google.visualization.Query(url);
-
     q.send(res=>{
-
-        if(res.isError()){
-            console.error("Error en hoja:", sheet);
-            callback(null);
-        }else{
-            callback(res.getDataTable());
-        }
-
+        if(res.isError()){ console.error("Error en hoja:", sheet); callback(null); }
+        else{ callback(res.getDataTable()); }
     });
 }
 
 function calcularPorMes(data, mesIndex, year){
-
     let total = 0;
-
     for(let i=0;i<data.getNumberOfRows();i++){
-
         let fecha = new Date(data.getValue(i,0));
         let monto = limpiarNumero(data.getValue(i,3));
-
         if(fecha instanceof Date && !isNaN(fecha)){
-
-            if(
-                fecha.getMonth() === mesIndex &&
-                fecha.getFullYear() === year
-            ){
-                total += monto;
-            }
+            if(fecha.getMonth() === mesIndex && fecha.getFullYear() === year){ total += monto; }
         }
     }
-
     return total;
 }
 
 function formatoCordobas(valor){
-    return "C$ " + valor.toLocaleString('en-US',{
-        minimumFractionDigits:2,
-        maximumFractionDigits:2
-    });
+    return "C$ " + valor.toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:2});
 }
 
 function cargarDatos(mesIndex, year){
-
     query("INGRESOS", ingresosData=>{
-
         query("EGRESOS", egresosData=>{
-
-            let ingresos =
-            ingresosData
-            ? calcularPorMes(ingresosData, mesIndex, year)
-            : 0;
-
-            let egresos =
-            egresosData
-            ? calcularPorMes(egresosData, mesIndex, year)
-            : 0;
-
+            let ingresos = ingresosData ? calcularPorMes(ingresosData, mesIndex, year) : 0;
+            let egresos = egresosData ? calcularPorMes(egresosData, mesIndex, year) : 0;
             let diferencia = ingresos - egresos;
 
-            document.getElementById("ingresos").innerText =
-            formatoCordobas(ingresos);
+            document.getElementById("ingresos").innerText = formatoCordobas(ingresos);
+            document.getElementById("egresos").innerText = formatoCordobas(egresos);
+            document.getElementById("diferencia").innerText = formatoCordobas(diferencia);
 
-            document.getElementById("egresos").innerText =
-            formatoCordobas(egresos);
-
-            document.getElementById("diferencia").innerText =
-            formatoCordobas(diferencia);
-
-            const chartData =
-            google.visualization.arrayToDataTable([
-                ['Tipo','Monto'],
-                ['Ingresos', ingresos],
-                ['Egresos', egresos]
-            ]);
-
-            const chart =
-            new google.visualization.ColumnChart(
-                document.getElementById('chart_div')
-            );
-
-            chart.draw(chartData,{
-                title:`Reporte - ${meses[mesIndex]} ${year}`,
-                legend:{position:"none"}
-            });
-
+            const chartData = google.visualization.arrayToDataTable([['Tipo','Monto'], ['Ingresos', ingresos], ['Egresos', egresos]]);
+            const chart = new google.visualization.ColumnChart(document.getElementById('chart_div'));
+            chart.draw(chartData,{title:`Reporte - ${meses[mesIndex]} ${year}`, legend:{position:"none"}});
         });
-
     });
-
 }
 
 function iniciar(){
-
-    const select =
-    document.getElementById("mesSelector");
-
-    const year =
-    new Date().getFullYear();
-
+    const select = document.getElementById("mesSelector");
+    const year = new Date().getFullYear();
     meses.forEach((mes,index)=>{
-
-        let option =
-        document.createElement("option");
-
-        option.value = index;
-        option.text = mes + " " + year;
-
+        let option = document.createElement("option");
+        option.value = index; option.text = mes + " " + year;
         select.appendChild(option);
-
     });
-
-    select.addEventListener("change",()=>{
-
-        cargarDatos(
-            parseInt(select.value),
-            year
-        );
-
-    });
-
-    const mesActual =
-    new Date().getMonth();
-
+    select.addEventListener("change",()=>{ cargarDatos(parseInt(select.value), year); });
+    const mesActual = new Date().getMonth();
     select.value = mesActual;
-
-    cargarDatos(
-        mesActual,
-        year
-    );
+    cargarDatos(mesActual, year);
 }
 
 async function descargarPDF(){
-
     const { jsPDF } = window.jspdf;
-
-    const reporte =
-    document.getElementById("reportePDF");
-
-    const canvas =
-    await html2canvas(reporte,{
-        scale:2
-    });
-
-    const imgData =
-    canvas.toDataURL("image/png");
-
-    const pdf =
-    new jsPDF("p","mm","a4");
-
+    const reporte = document.getElementById("reportePDF");
+    const canvas = await html2canvas(reporte,{scale:2});
+    const imgData = canvas.toDataURL("image/png");
+    const pdf = new jsPDF("p","mm","a4");
     const ancho = 190;
-    const alto =
-    (canvas.height * ancho) /
-    canvas.width;
-
-    pdf.addImage(
-        imgData,
-        "PNG",
-        10,
-        10,
-        ancho,
-        alto
-    );
-
+    const alto = (canvas.height * ancho) / canvas.width;
+    pdf.addImage(imgData, "PNG", 10, 10, ancho, alto);
     pdf.save("Reporte_Sindicato.pdf");
 }
-
 google.charts.setOnLoadCallback(iniciar);
-
 </script>
 
-
 </div>
+
 <div id="gal" class="tab"><section><h2>Galería</h2><iframe src="https://docs.google.com/spreadsheets/d/1RLkiCHt-R_CjBlUgBM4YS_grRo8Wp5Rl/preview" width="100%" height="600"></iframe></section></div>
 <div id="vid" class="tab"><section><h2>Videos</h2><iframe src="https://docs.google.com/spreadsheets/d/1e6x93z5jkCPXMkNWPR_juLbabQXbpEot/preview" width="100%" height="600"></iframe></section></div>
-<div id="news" class="tab"><section><h2>Noticias Informativas</h2>
-<input id="titulo" placeholder="Título" style="width:100%;padding:8px"><br><br>
-<input id="fecha" type="date" style="width:100%;padding:8px"><br><br>
-<textarea id="descripcion" style="width:100%;height:120px" placeholder="Descripción"></textarea><br><br>
-<input id="foto" type="file" accept="image/*"><br><br>
-<button onclick="publicar()">Publicar noticia</button>
-<div id="lista"></div></section></div>
+
+<div id="news" class="tab">
+    <section>
+        <h2>Noticias Informativas</h2>
+        
+        <div id="loginSection" class="login-container">
+            <h4>Acceso Administrador</h4>
+            <input type="email" id="adminEmail" placeholder="Correo electrónico" style="margin-bottom:8px;">
+            <input type="password" id="adminPass" placeholder="Contraseña" style="margin-bottom:8px;">
+            <button onclick="loginAdmin()" style="background:#28a745; margin:0;">Iniciar Sesión</button>
+        </div>
+        
+        <button id="logoutBtn" onclick="logoutAdmin()" style="display:none; background:#dc3545; margin-bottom:20px;">Cerrar Sesión de Admin</button>
+
+        <div class="admin-only">
+            <input id="titulo" placeholder="Título"><br>
+            <input id="fecha" type="date"><br>
+            <textarea id="descripcion" style="height:120px" placeholder="Descripción"></textarea><br>
+            <input id="foto" type="file" accept="image/*"><br>
+            <button id="btnPublicar" onclick="publicar()">Publicar noticia</button>
+        </div>
+        
+        <div id="lista"></div>
+    </section>
+</div>
 </body>
 </html>
