@@ -1,0 +1,378 @@
+Código actual en github
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sindicato Juan Flores Vivas</title>
+
+<script src="https://www.gstatic.com/charts/loader.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<style>
+body{
+    font-family: Arial, sans-serif;
+    margin:0;
+    padding:20px;
+    background:#f4f6f9;
+}
+
+h1{
+    text-align:center;
+    color:#003366;
+}
+
+section{
+    max-width:900px;
+    margin:auto;
+    background:#fff;
+    padding:20px;
+    border-radius:10px;
+    margin-bottom:20px;
+}
+
+.summary{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+}
+
+.card{
+    flex:1;
+    min-width:220px;
+    background:#e6f0ff;
+    padding:15px;
+    border-radius:10px;
+    text-align:center;
+}
+
+#chart_div{
+    height:300px;
+    margin-top:20px;
+}
+
+select{
+    width:100%;
+    padding:10px;
+    margin-bottom:10px;
+}
+
+button{
+    width:100%;
+    padding:10px;
+    margin-bottom:15px;
+    background:#003366;
+    color:white;
+    border:none;
+    border-radius:5px;
+    cursor:pointer;
+    font-size:15px;
+}
+
+button:hover{
+    opacity:0.9;
+}
+
+iframe{
+    border:none;
+    border-radius:10px;
+}
+</style>
+
+<style>
+.topnav{display:flex;gap:8px;justify-content:center;background:#003366;padding:10px;position:sticky;top:0}
+.topnav button{width:auto;margin:0;background:#0b5ed7}
+.tab{display:none}.tab.active{display:block}
+.news-card{border:1px solid #ccc;border-radius:8px;padding:10px;margin:10px 0}
+</style>
+<script>
+function showTab(id){document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');}
+window.addEventListener('DOMContentLoaded',()=>{
+document.body.insertAdjacentHTML('afterbegin','<div class="topnav"><button onclick="showTab(\'docs\')">Documentos</button><button onclick="showTab(\'gal\')">Galería</button><button onclick="showTab(\'vid\')">Videos</button><button onclick="showTab(\'news\')">Noticias</button></div>');
+document.getElementById('docs').classList.add('active');
+document.getElementById('fecha').value=new Date().toISOString().slice(0,10);
+});
+function publicar(){
+let t=titulo.value,d=descripcion.value,f=fecha.value;
+if(!t&&!d)return;
+let file=foto.files[0];
+if(file){let r=new FileReader();r.onload=e=>crear(t,d,f,e.target.result);r.readAsDataURL(file);}
+else crear(t,d,f,'');
+}
+function crear(t,d,f,img){
+let c=document.getElementById('lista');
+let n=document.createElement('div');
+n.className='news-card';
+n.innerHTML='<h3>'+t+'</h3><small>'+f+'</small><p>'+d+'</p>'+(img?'<img src="'+img+'" style="max-width:100%">':'')+'<br><button onclick="editar(this)">Editar</button> <button onclick="this.parentNode.remove()">Eliminar</button>';
+c.prepend(n);
+titulo.value='';descripcion.value='';foto.value='';
+}
+function editar(b){
+let p=b.parentNode;
+titulo.value=p.querySelector('h3').innerText;
+fecha.value=p.querySelector('small').innerText;
+descripcion.value=p.querySelector('p').innerText;
+p.remove();
+}
+</script>
+</head>
+
+<body><div id="docs" class="tab">
+
+<div id="reportePDF">
+
+<h1>Sindicato Juan Flores Vivas</h1>
+
+<section>
+
+<select id="mesSelector"></select>
+
+<button onclick="descargarPDF()">
+📄 Descargar Reporte PDF
+</button>
+
+<div class="summary">
+    <div class="card">
+        <h3>Ingresos</h3>
+        <p id="ingresos">C$ 0.00</p>
+    </div>
+
+    <div class="card">
+        <h3>Egresos</h3>
+        <p id="egresos">C$ 0.00</p>
+    </div>
+
+    <div class="card">
+        <h3>Diferencia</h3>
+        <p id="diferencia">C$ 0.00</p>
+    </div>
+</div>
+
+<div id="chart_div"></div>
+
+</section>
+
+</div>
+
+<section>
+<h3>Archivo completo</h3>
+
+<iframe
+src="https://docs.google.com/spreadsheets/d/1g8g4YVEk1mZ8IF86sLmqfoXYBDQjsTHe/preview"
+width="100%"
+height="450">
+</iframe>
+
+</section>
+
+<script>
+
+google.charts.load('current', {'packages':['corechart']});
+
+const SHEET_ID = "1g8g4YVEk1mZ8IF86sLmqfoXYBDQjsTHe";
+
+const meses = [
+"Enero","Febrero","Marzo","Abril",
+"Mayo","Junio","Julio","Agosto",
+"Septiembre","Octubre","Noviembre","Diciembre"
+];
+
+function limpiarNumero(valor){
+    if(typeof valor === "string"){
+        valor = valor.replace(/[^\d.-]/g,"");
+    }
+    return parseFloat(valor) || 0;
+}
+
+function query(sheet, callback){
+
+    const url =
+    `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?sheet=${encodeURIComponent(sheet)}&headers=1`;
+
+    const q = new google.visualization.Query(url);
+
+    q.send(res=>{
+
+        if(res.isError()){
+            console.error("Error en hoja:", sheet);
+            callback(null);
+        }else{
+            callback(res.getDataTable());
+        }
+
+    });
+}
+
+function calcularPorMes(data, mesIndex, year){
+
+    let total = 0;
+
+    for(let i=0;i<data.getNumberOfRows();i++){
+
+        let fecha = new Date(data.getValue(i,0));
+        let monto = limpiarNumero(data.getValue(i,3));
+
+        if(fecha instanceof Date && !isNaN(fecha)){
+
+            if(
+                fecha.getMonth() === mesIndex &&
+                fecha.getFullYear() === year
+            ){
+                total += monto;
+            }
+        }
+    }
+
+    return total;
+}
+
+function formatoCordobas(valor){
+    return "C$ " + valor.toLocaleString('en-US',{
+        minimumFractionDigits:2,
+        maximumFractionDigits:2
+    });
+}
+
+function cargarDatos(mesIndex, year){
+
+    query("INGRESOS", ingresosData=>{
+
+        query("EGRESOS", egresosData=>{
+
+            let ingresos =
+            ingresosData
+            ? calcularPorMes(ingresosData, mesIndex, year)
+            : 0;
+
+            let egresos =
+            egresosData
+            ? calcularPorMes(egresosData, mesIndex, year)
+            : 0;
+
+            let diferencia = ingresos - egresos;
+
+            document.getElementById("ingresos").innerText =
+            formatoCordobas(ingresos);
+
+            document.getElementById("egresos").innerText =
+            formatoCordobas(egresos);
+
+            document.getElementById("diferencia").innerText =
+            formatoCordobas(diferencia);
+
+            const chartData =
+            google.visualization.arrayToDataTable([
+                ['Tipo','Monto'],
+                ['Ingresos', ingresos],
+                ['Egresos', egresos]
+            ]);
+
+            const chart =
+            new google.visualization.ColumnChart(
+                document.getElementById('chart_div')
+            );
+
+            chart.draw(chartData,{
+                title:`Reporte - ${meses[mesIndex]} ${year}`,
+                legend:{position:"none"}
+            });
+
+        });
+
+    });
+
+}
+
+function iniciar(){
+
+    const select =
+    document.getElementById("mesSelector");
+
+    const year =
+    new Date().getFullYear();
+
+    meses.forEach((mes,index)=>{
+
+        let option =
+        document.createElement("option");
+
+        option.value = index;
+        option.text = mes + " " + year;
+
+        select.appendChild(option);
+
+    });
+
+    select.addEventListener("change",()=>{
+
+        cargarDatos(
+            parseInt(select.value),
+            year
+        );
+
+    });
+
+    const mesActual =
+    new Date().getMonth();
+
+    select.value = mesActual;
+
+    cargarDatos(
+        mesActual,
+        year
+    );
+}
+
+async function descargarPDF(){
+
+    const { jsPDF } = window.jspdf;
+
+    const reporte =
+    document.getElementById("reportePDF");
+
+    const canvas =
+    await html2canvas(reporte,{
+        scale:2
+    });
+
+    const imgData =
+    canvas.toDataURL("image/png");
+
+    const pdf =
+    new jsPDF("p","mm","a4");
+
+    const ancho = 190;
+    const alto =
+    (canvas.height * ancho) /
+    canvas.width;
+
+    pdf.addImage(
+        imgData,
+        "PNG",
+        10,
+        10,
+        ancho,
+        alto
+    );
+
+    pdf.save("Reporte_Sindicato.pdf");
+}
+
+google.charts.setOnLoadCallback(iniciar);
+
+</script>
+
+
+</div>
+<div id="gal" class="tab"><section><h2>Galería</h2><iframe src="https://docs.google.com/spreadsheets/d/1RLkiCHt-R_CjBlUgBM4YS_grRo8Wp5Rl/preview" width="100%" height="600"></iframe></section></div>
+<div id="vid" class="tab"><section><h2>Videos</h2><iframe src="https://docs.google.com/spreadsheets/d/1e6x93z5jkCPXMkNWPR_juLbabQXbpEot/preview" width="100%" height="600"></iframe></section></div>
+<div id="news" class="tab"><section><h2>Noticias Informativas</h2>
+<input id="titulo" placeholder="Título" style="width:100%;padding:8px"><br><br>
+<input id="fecha" type="date" style="width:100%;padding:8px"><br><br>
+<textarea id="descripcion" style="width:100%;height:120px" placeholder="Descripción"></textarea><br><br>
+<input id="foto" type="file" accept="image/*"><br><br>
+<button onclick="publicar()">Publicar noticia</button>
+<div id="lista"></div></section></div>
+</body>
+</html>
