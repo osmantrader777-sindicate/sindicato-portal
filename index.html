@@ -95,7 +95,7 @@ iframe{
 
 <script>
 // ==========================================
-// TUS CREDENCIALES CONFIGURADAS DE FIREBASE
+// TUS CREDENCIALES REALES DE FIREBASE
 // ==========================================
 const firebaseConfig = {
   apiKey: "AIzaSyBXrIndvikCMg47NfN6NzmB3lYpui2AfWQ",
@@ -123,14 +123,15 @@ window.addEventListener('DOMContentLoaded',()=>{
     document.body.insertAdjacentHTML('afterbegin','<div class="topnav"><button onclick="showTab(\'docs\')">Documentos</button><button onclick="showTab(\'gal\')">Galería</button><button onclick="showTab(\'vid\')">Videos</button><button onclick="showTab(\'news\')">Noticias</button></div>');
     document.getElementById('docs').classList.add('active');
     
-    // Asignar fecha de hoy de forma segura al input correspondiente si existe
+    // Asignar la fecha por defecto de forma segura
     setTimeout(() => {
-        let inputFecha = document.getElementById('fecha');
-        if(inputFecha) inputFecha.value = new Date().toISOString().slice(0,10);
+        let fInput = document.getElementById('fecha');
+        if(fInput) fInput.value = new Date().toISOString().slice(0,10);
     }, 500);
 
     // Escuchar el estado de la sesión de Firebase
     auth.onAuthStateChanged(user => {
+        // Tu UID específico autorizado en las reglas de Firestore
         if (user && user.uid === 'vXgKZhno0gg2Egz1DSPOHuplo502') {
             esAdmin = true;
             document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'block');
@@ -142,14 +143,14 @@ window.addEventListener('DOMContentLoaded',()=>{
             document.getElementById('loginSection').style.display = 'block';
             document.getElementById('logoutBtn').style.display = 'none';
         }
-        // Cargar noticias para todos
+        // Cargar noticias para todos los usuarios visitantes
         cargarNoticiasFirestore();
     });
 });
 
 // Manejo de Login y Logout
 function loginAdmin(){
-    let email = document.getElementById('adminEmail').value;
+    let email = document.getElementById('adminEmail').value.trim();
     let pass = document.getElementById('adminPass').value;
     
     if(!email || !pass) {
@@ -162,7 +163,7 @@ function loginAdmin(){
             alert("¡Sesión iniciada con éxito como Administrador!");
         })
         .catch(error => {
-            alert("Error de autenticación: " + error.message);
+            alert("Error de autenticación: " + error.message + "\n\nVerifica que tu correo sea osmantrader777@gmail.com y la contraseña sea la correcta en la sección de 'Usuarios' de Firebase.");
         });
 }
 
@@ -220,7 +221,7 @@ function guardarEnFirestore(t, d, f, img){
     }
 }
 
-// Cargar Noticias en tiempo real desde Firestore
+// Cargar Noticias en tiempo real desde Firestore (Sin orderBy para no exigir índices)
 function cargarNoticiasFirestore(){
     db.collection('Noticias').onSnapshot(snapshot => {
         let c = document.getElementById('lista');
@@ -256,6 +257,7 @@ function editarFirestore(id, t, f, d){
     window.scrollTo(0, document.getElementById('news').offsetTop);
 }
 
+// Eliminar noticia física en Firestore
 function eliminarFirestore(id){
     if(confirm("¿Seguro que deseas eliminar esta noticia?")){
         db.collection('Noticias').doc(id).delete()
@@ -322,7 +324,7 @@ height="450">
 </section>
 
 <script>
-// Reportes de Google Charts (Totalmente intacto)
+// Reportes de Google Charts (Completamente Intacto)
 google.charts.load('current', {'packages':['corechart']});
 const SHEET_ID = "1g8g4YVEk1mZ8IF86sLmqfoXYBDQjsTHe";
 const meses = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
@@ -414,8 +416,8 @@ google.charts.setOnLoadCallback(iniciar);
         
         <div id="loginSection" class="login-container">
             <h4>Acceso Administrador</h4>
-            <input type="email" id="adminEmail" placeholder="Correo electrónico" style="margin-bottom:8px;">
-            <input type="password" id="adminPass" placeholder="Contraseña" style="margin-bottom:8px;">
+            <input type="email" id="adminEmail" placeholder="Correo electrónico">
+            <input type="password" id="adminPass" placeholder="Contraseña">
             <button onclick="loginAdmin()" style="background:#28a745; margin:0;">Iniciar Sesión</button>
         </div>
         
