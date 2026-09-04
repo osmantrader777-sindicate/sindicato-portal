@@ -6,7 +6,7 @@
 <title>Sindicato Juan Flores Vivas</title>
 
 <!-- Configuración de App Instalable (PWA) -->
-<link rel="manifest" href="manifest.json">
+<link rel="manifest" href="manifest.json?v=2">
 <meta name="theme-color" content="#003366">
 <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3135/3135715.png">
 
@@ -547,7 +547,8 @@ function cargarDatos(mesIndex, year) {
             document.getElementById("diferencia").innerText = formatoCordobas(diferencia);
 
             const chartData = google.visualization.arrayToDataTable([['Tipo', 'Monto'], ['Ingresos', ingresos], ['Egresos', egresos]]);
-            const chart.draw(chartData, { title: `Reporte - ${meses[mesIndex]} ${year}`, legend: { position: "none" } });
+            const chart = new google.visualization.ColumnChart(document.getElementById('chart_div'));
+            chart.draw(chartData, { title: `Reporte - ${meses[mesIndex]} ${year}`, legend: { position: "none" } });
         });
     });
 }
@@ -585,8 +586,8 @@ google.charts.setOnLoadCallback(iniciar);
 // Registro de la App Instalable (Service Worker)
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js')
-      .then(reg => console.log('App lista y registrada:', reg.scope))
+    navigator.serviceWorker.register('./sw.js?v=2')
+      .then(reg => console.log('App registrada con éxito:', reg.scope))
       .catch(err => console.log('Error al registrar App:', err));
   });
 }
