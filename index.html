@@ -2,101 +2,221 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Sindicato Juan Flores Vivas</title>
 
+<!-- Configuración de App Instalable (PWA) -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#003366">
+<link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3135/3135715.png">
+
+<!-- Iconos de FontAwesome para la App -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<!-- Librerías Externas -->
 <script src="https://www.gstatic.com/charts/loader.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
+<!-- Firebase SDKs (Compat) -->
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
 <style>
-body{
-    font-family: Arial, sans-serif;
-    margin:0;
-    padding:20px;
-    background:#f4f6f9;
-}
-
-h1{
-    text-align:center;
-    color:#003366;
-}
-
-section{
-    max-width:900px;
-    margin:auto;
-    background:#fff;
-    padding:20px;
-    border-radius:10px;
-    margin-bottom:20px;
-}
-
-.summary{
-    display:flex;
-    gap:10px;
-    flex-wrap:wrap;
-}
-
-.card{
-    flex:1;
-    min-width:220px;
-    background:#e6f0ff;
-    padding:15px;
-    border-radius:10px;
-    text-align:center;
-}
-
-#chart_div{
-    height:300px;
-    margin-top:20px;
-}
-
-select, input, textarea{
-    width:100%;
-    padding:10px;
-    margin-bottom:10px;
+* {
     box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
 }
 
-button{
-    width:100%;
-    padding:10px;
-    margin-bottom:15px;
-    background:#003366;
-    color:white;
-    border:none;
-    border-radius:5px;
-    cursor:pointer;
-    font-size:15px;
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    margin: 0;
+    padding: 0 0 75px 0; /* Espacio inferior para el menú */
+    background: #f0f2f5;
+    color: #333;
 }
 
-button:hover{
-    opacity:0.9;
+/* Encabezado de la App */
+.app-header {
+    background: #003366;
+    color: white;
+    padding: 15px;
+    text-align: center;
+    position: sticky;
+    top: 0;
+    z-index: 900;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
 }
 
-iframe{
-    border:none;
-    border-radius:10px;
+.app-header h1 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
 }
-</style>
 
-<style>
-.topnav{display:flex;gap:8px;justify-content:center;background:#003366;padding:10px;position:sticky;top:0;z-index:1000;}
-.topnav button{width:auto;margin:0;background:#0b5ed7}
-.tab{display:none}.tab.active{display:block}
-.news-card{border:1px solid #ccc;border-radius:8px;padding:10px;margin:10px 0;background:#fff;}
-.admin-only{display:none;} 
-.login-container{background:#f0f0f0; padding:15px; border-radius:8px; margin-bottom:20px;}
+/* Secciones / Pantallas */
+.tab {
+    display: none;
+    padding: 12px;
+}
+
+.tab.active {
+    display: block;
+}
+
+/* Tarjetas */
+.card-section {
+    background: #ffffff;
+    padding: 16px;
+    border-radius: 12px;
+    margin-bottom: 15px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.card-section h2, .card-section h3 {
+    margin-top: 0;
+    color: #003366;
+}
+
+/* Finanzas */
+.summary {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 15px;
+}
+
+.card-finance {
+    flex: 1;
+    min-width: 100px;
+    background: #e6f0ff;
+    padding: 12px;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.card-finance h3 {
+    font-size: 0.85rem;
+    margin: 0 0 5px 0;
+    color: #555;
+}
+
+.card-finance p {
+    font-size: 1rem;
+    font-weight: bold;
+    margin: 0;
+    color: #003366;
+}
+
+#chart_div {
+    height: 260px;
+    margin-top: 15px;
+}
+
+/* Formularios */
+select, input, textarea {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 12px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 14px;
+}
+
+button {
+    width: 100%;
+    padding: 12px;
+    background: #003366;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+button:active {
+    opacity: 0.85;
+}
+
+/* Noticias */
+.news-card {
+    border: 1px solid #e1e4e8;
+    border-radius: 10px;
+    padding: 14px;
+    margin-bottom: 15px;
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.news-card h3 {
+    margin: 0 0 5px 0;
+    font-size: 1.1rem;
+    color: #003366;
+}
+
+.news-card small {
+    color: #777;
+}
+
+.admin-only {
+    display: none;
+}
+
+.login-container {
+    background: #e9ecef;
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 15px;
+}
+
+/* Barra de Navegación Inferior (Menú Móvil) */
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background: #ffffff;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+    z-index: 1000;
+}
+
+.nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #666;
+    text-decoration: none;
+    font-size: 0.75rem;
+    width: 25%;
+    height: 100%;
+    cursor: pointer;
+}
+
+.nav-item i {
+    font-size: 1.2rem;
+    margin-bottom: 3px;
+}
+
+.nav-item.active {
+    color: #003366;
+    font-weight: bold;
+}
+
+iframe {
+    border: none;
+    border-radius: 8px;
+}
 </style>
 
 <script>
-// ==========================================
-// TUS CREDENCIALES REALES DE FIREBASE
-// ==========================================
+// Firebase Config
 const firebaseConfig = {
   apiKey: "AIzaSyBXrIndvikCMg47NfN6NzmB3lYpui2AfWQ",
   authDomain: "noticias-sindicato-cips.firebaseapp.com",
@@ -106,7 +226,6 @@ const firebaseConfig = {
   appId: "1:113761910632:web:d0ea2b15a4d82fbe0f20dd"
 };
 
-// Inicializar Firebase
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
@@ -114,31 +233,28 @@ const db = firebase.firestore();
 let noticiaEditandoId = null; 
 let esAdmin = false; 
 
-function showTab(id){
-    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+function showTab(id, element) {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(x => x.classList.remove('active'));
+    
     document.getElementById(id).classList.add('active');
+    if (element) {
+        element.classList.add('active');
+    }
 }
 
-window.addEventListener('DOMContentLoaded',()=>{
-    document.body.insertAdjacentHTML('afterbegin','<div class="topnav"><button onclick="showTab(\'docs\')">Documentos</button><button onclick="showTab(\'gal\')">Galería</button><button onclick="showTab(\'vid\')">Videos</button><button onclick="showTab(\'news\')">Noticias</button></div>');
-    document.getElementById('docs').classList.add('active');
-    
-    setTimeout(() => {
-        let fInput = document.getElementById('fecha');
-        if(fInput) fInput.value = new Date().toISOString().slice(0,10);
-    }, 500);
+window.addEventListener('DOMContentLoaded', () => {
+    let fInput = document.getElementById('fecha');
+    if (fInput) fInput.value = new Date().toISOString().slice(0, 10);
 
-    // Escuchar el estado de autenticación de Firebase de forma robusta
     auth.onAuthStateChanged(user => {
         if (user) {
             esAdmin = true;
-            // Mostrar panel de publicación y botón de salir
             document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'block');
             document.getElementById('loginSection').style.display = 'none';
             document.getElementById('logoutBtn').style.display = 'block';
         } else {
             esAdmin = false;
-            // Ocultar controles y mostrar el login limpio
             document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
             document.getElementById('loginSection').style.display = 'block';
             document.getElementById('logoutBtn').style.display = 'none';
@@ -147,63 +263,55 @@ window.addEventListener('DOMContentLoaded',()=>{
     });
 });
 
-// Manejo definitivo de Login y Logout
-function loginAdmin(){
+function loginAdmin() {
     let email = document.getElementById('adminEmail').value.trim();
     let pass = document.getElementById('adminPass').value;
     
-    if(!email || !pass) {
+    if (!email || !pass) {
         alert("Por favor ingresa tu correo y contraseña.");
         return;
     }
     
     auth.signInWithEmailAndPassword(email, pass)
-        .then((userCredential) => {
-            alert("¡Sesión iniciada con éxito como Administrador!");
-            
-            // Forzar renderizado visual instantáneo
-            esAdmin = true;
-            document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'block');
-            document.getElementById('loginSection').style.display = 'none';
-            document.getElementById('logoutBtn').style.display = 'block';
-            
-            cargarNoticiasFirestore();
-        })
-        .catch(error => {
-            alert("Error: " + error.message);
-        });
+        .then(() => alert("¡Sesión iniciada con éxito!"))
+        .catch(error => alert("Error al iniciar sesión: " + error.message));
 }
 
-function logoutAdmin(){
+function logoutAdmin() {
     auth.signOut().then(() => {
         alert("Sesión cerrada.");
         location.reload();
     });
 }
 
-// Publicar o Actualizar Noticia en Cloud Firestore
-function publicar(){
+function publicar() {
     let txtTitulo = document.getElementById('titulo').value;
     let txtDescripcion = document.getElementById('descripcion').value;
     let txtFecha = document.getElementById('fecha').value;
     let fileFoto = document.getElementById('foto').files[0];
 
-    if(!txtTitulo && !txtDescripcion) {
-        alert("Por favor escribe al menos un título o una descripción.");
+    if (!txtTitulo && !txtDescripcion) {
+        alert("Por favor escribe un título o descripción.");
         return;
     }
 
-    if(fileFoto){
-        let r=new FileReader();
-        r.onload=e=>guardarEnFirestore(txtTitulo, txtDescripcion, txtFecha, e.target.result);
+    if (fileFoto) {
+        let r = new FileReader();
+        r.onload = e => guardarEnFirestore(txtTitulo, txtDescripcion, txtFecha, e.target.result);
         r.readAsDataURL(fileFoto);
     } else {
-        let imgExistente = noticiaEditandoId ? document.getElementById('img_' + noticiaEditandoId)?.src || '' : '';
-        guardarEnFirestore(txtTitulo, txtDescripcion, txtFecha, imgExistente);
+        if (noticiaEditandoId) {
+            db.collection('Noticias').doc(noticiaEditandoId).get().then(doc => {
+                let imgExistente = doc.exists ? (doc.data().imagen || '') : '';
+                guardarEnFirestore(txtTitulo, txtDescripcion, txtFecha, imgExistente);
+            });
+        } else {
+            guardarEnFirestore(txtTitulo, txtDescripcion, txtFecha, '');
+        }
     }
 }
 
-function guardarEnFirestore(t, d, f, img){
+function guardarEnFirestore(t, d, f, img) {
     let datosNoticia = {
         titulo: t,
         descripcion: d,
@@ -212,11 +320,9 @@ function guardarEnFirestore(t, d, f, img){
         timestamp: firebase.firestore.FieldValue.serverTimestamp()
     };
 
-    if(noticiaEditandoId){
+    if (noticiaEditandoId) {
         db.collection('Noticias').doc(noticiaEditandoId).update(datosNoticia)
         .then(() => {
-            noticiaEditandoId = null;
-            document.getElementById('btnPublicar').innerText = "Publicar noticia";
             limpiarFormulario();
             alert("¡Noticia actualizada!");
         }).catch(err => alert("Error al actualizar: " + err.message));
@@ -224,16 +330,15 @@ function guardarEnFirestore(t, d, f, img){
         db.collection('Noticias').add(datosNoticia)
         .then(() => {
             limpiarFormulario();
-            alert("¡Noticia publicada con éxito!");
+            alert("¡Noticia publicada!");
         }).catch(err => alert("Error al publicar: " + err.message));
     }
 }
 
-// Cargar Noticias en tiempo real
-function cargarNoticiasFirestore(){
+function cargarNoticiasFirestore() {
     db.collection('Noticias').orderBy('timestamp', 'desc').onSnapshot(snapshot => {
         let c = document.getElementById('lista');
-        if(!c) return;
+        if (!c) return;
         c.innerHTML = ''; 
         
         snapshot.forEach(doc => {
@@ -243,134 +348,196 @@ function cargarNoticiasFirestore(){
             let n = document.createElement('div');
             n.className = 'news-card';
             
-            let botonesAdmin = esAdmin ? 
-                `<br><button style="width:auto; margin-right:5px; background:#ffc107; color:#000" onclick="editarFirestore('${id}', '${data.titulo}', '${data.fecha}', \`${data.descripcion ? data.descripcion.replace(/'/g, "\\'") : ''}\`)">Editar</button> 
-                 <button style="width:auto; background:#dc3545" onclick="eliminarFirestore('${id}')">Eliminar</button>` 
-                : '';
+            let htmlContent = `<h3>${escapeHtml(data.titulo || '')}</h3>
+                               <small><i class="fa-regular fa-calendar"></i> ${escapeHtml(data.fecha || '')}</small>
+                               <p style="white-space: pre-wrap;">${escapeHtml(data.descripcion || '')}</p>`;
+            
+            if (data.imagen) {
+                htmlContent += `<img id="img_${id}" src="${data.imagen}" style="max-width:100%; border-radius:8px; margin-top:8px;">`;
+            }
 
-            n.innerHTML = '<h3>'+(data.titulo || '')+'</h3><small>'+(data.fecha || '')+'</small><p>'+(data.descripcion || '')+'</p>'+(data.imagen?'<img id="img_'+id+'" src="'+data.imagen+'" style="max-width:100%">':'')+botonesAdmin;
+            if (esAdmin) {
+                htmlContent += `<div style="margin-top:10px;">
+                    <button style="width:auto; padding:6px 12px; margin-right:5px; background:#ffc107; color:#000" class="btn-editar">Editar</button>
+                    <button style="width:auto; padding:6px 12px; background:#dc3545" onclick="eliminarFirestore('${id}')">Eliminar</button>
+                </div>`;
+            }
+
+            n.innerHTML = htmlContent;
+            
+            if (esAdmin) {
+                let btnEdit = n.querySelector('.btn-editar');
+                if (btnEdit) {
+                    btnEdit.addEventListener('click', () => {
+                        editarFirestore(id, data.titulo || '', data.fecha || '', data.descripcion || '');
+                    });
+                }
+            }
+
             c.appendChild(n); 
         });
-    }, error => {
-        console.log("Error al leer datos: ", error.message);
-    });
+    }, error => console.error("Error datos: ", error.message));
 }
 
-function editarFirestore(id, t, f, d){
+function escapeHtml(text) {
+    return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+}
+
+function editarFirestore(id, t, f, d) {
     noticiaEditandoId = id;
     document.getElementById('titulo').value = t;
     document.getElementById('fecha').value = f;
     document.getElementById('descripcion').value = d;
     document.getElementById('btnPublicar').innerText = "Guardar Cambios";
-    window.scrollTo(0, document.getElementById('news').offsetTop);
+    window.scrollTo({ top: document.getElementById('news').offsetTop, behavior: 'smooth' });
 }
 
-function eliminarFirestore(id){
-    if(confirm("¿Seguro que deseas eliminar esta noticia?")){
-        db.collection('Noticias').doc(id).delete()
-        .catch(err => alert("Error al eliminar: " + err.message));
+function eliminarFirestore(id) {
+    if (confirm("¿Seguro que deseas eliminar esta noticia?")) {
+        db.collection('Noticias').doc(id).delete().catch(err => alert("Error: " + err.message));
     }
 }
 
-function limpiarFormulario(){
-    document.getElementById('titulo').value='';
-    document.getElementById('descripcion').value='';
-    document.getElementById('foto').value='';
-    document.getElementById('fecha').value=new Date().toISOString().slice(0,10);
+function limpiarFormulario() {
+    noticiaEditandoId = null;
+    document.getElementById('titulo').value = '';
+    document.getElementById('descripcion').value = '';
+    document.getElementById('foto').value = '';
+    document.getElementById('fecha').value = new Date().toISOString().slice(0, 10);
+    document.getElementById('btnPublicar').innerText = "Publicar noticia";
 }
 </script>
 </head>
 
 <body>
-<div id="docs" class="tab">
-    <div id="reportePDF">
-        <h1>Sindicato Juan Flores Vivas</h1>
-        <section>
-            <select id="mesSelector"></select>
-            <button onclick="descargarPDF()">📄 Descargar Reporte PDF</button>
-            <div class="summary">
-                <div class="card"><h3>Ingresos</h3><p id="ingresos">C$ 0.00</p></div>
-                <div class="card"><h3>Egresos</h3><p id="egresos">C$ 0.00</p></div>
-                <div class="card"><h3>Diferencia</h3><p id="diferencia">C$ 0.00</p></div>
-            </div>
-            <div id="chart_div"></div>
-        </section>
-    </div>
-    <section>
-        <h3>Archivo completo</h3>
-        <iframe src="https://docs.google.com/spreadsheets/d/1g8g4YVEk1mZ8IF86sLmqfoXYBDQjsTHe/preview" width="100%" height="450"></iframe>
-    </section>
+
+<!-- Encabezado de la App -->
+<div class="app-header">
+    <h1>Sindicato Juan Flores Vivas</h1>
 </div>
 
-<div id="gal" class="tab"><section><h2>Galería</h2><iframe src="https://docs.google.com/spreadsheets/d/1RLkiCHt-R_CjBlUgBM4YS_grRo8Wp5Rl/preview" width="100%" height="600"></iframe></section></div>
-<div id="vid" class="tab"><section><h2>Videos</h2><iframe src="https://docs.google.com/spreadsheets/d/1e6x93z5jkCPXMkNWPR_juLbabQXbpEot/preview" width="100%" height="600"></iframe></section></div>
-
-<div id="news" class="tab">
-    <section>
-        <h2>Noticias Informativas</h2>
+<!-- PANTALLA: NOTICIAS (INICIO) -->
+<div id="news" class="tab active">
+    <div class="card-section">
+        <h2><i class="fa-regular fa-newspaper"></i> Noticias Recientes</h2>
         
         <div id="loginSection" class="login-container">
-            <h4>Acceso Administrador</h4>
+            <h4 style="margin-top:0;">Acceso Administrador</h4>
             <input type="email" id="adminEmail" placeholder="Correo electrónico">
             <input type="password" id="adminPass" placeholder="Contraseña">
-            <button onclick="loginAdmin()" style="background:#28a745; margin:0;">Iniciar Sesión</button>
+            <button onclick="loginAdmin()" style="background:#28a745;">Iniciar Sesión</button>
         </div>
         
-        <button id="logoutBtn" onclick="logoutAdmin()" style="display:none; background:#dc3545; margin-bottom:20px;">Cerrar Sesión de Admin</button>
+        <button id="logoutBtn" onclick="logoutAdmin()" style="display:none; background:#dc3545; margin-bottom:15px;">Cerrar Sesión Admin</button>
 
-        <div class="admin-only" style="background: #fff9e6; padding: 15px; border-radius: 8px; border: 1px dashed #ffc107; margin-bottom: 20px;">
-            <h3 style="color: #b98d00; margin-top: 0;">Panel de Publicación</h3>
-            <input id="titulo" placeholder="Título de la noticia"><br>
-            <input id="fecha" type="date"><br>
-            <textarea id="descripcion" style="height:120px" placeholder="Escribe el contenido o descripción de la noticia aquí..."></textarea><br>
-            <input id="foto" type="file" accept="image/*"><br>
+        <div class="admin-only" style="background: #fff9e6; padding: 12px; border-radius: 8px; border: 1px dashed #ffc107; margin-bottom: 15px;">
+            <h4 style="color: #b98d00; margin-top: 0;">Panel de Publicación</h4>
+            <input id="titulo" placeholder="Título de la noticia">
+            <input id="fecha" type="date">
+            <textarea id="descripcion" style="height:90px" placeholder="Escribe el contenido aquí..."></textarea>
+            <input id="foto" type="file" accept="image/*">
             <button id="btnPublicar" onclick="publicar()" style="background: #28a745;">Publicar noticia</button>
         </div>
         
-        <h3>Historial de Noticias</h3>
         <div id="lista"></div>
-    </section>
+    </div>
+</div>
+
+<!-- PANTALLA: FINANZAS -->
+<div id="docs" class="tab">
+    <div class="card-section" id="reportePDF">
+        <h2><i class="fa-solid fa-chart-line"></i> Reporte Financiero</h2>
+        <select id="mesSelector"></select>
+        <button onclick="descargarPDF()" style="margin-bottom:10px;"><i class="fa-solid fa-file-pdf"></i> Descargar Reporte PDF</button>
+        <div class="summary">
+            <div class="card-finance"><h3>Ingresos</h3><p id="ingresos">C$ 0.00</p></div>
+            <div class="card-finance"><h3>Egresos</h3><p id="egresos">C$ 0.00</p></div>
+            <div class="card-finance"><h3>Diferencia</h3><p id="diferencia">C$ 0.00</p></div>
+        </div>
+        <div id="chart_div"></div>
+    </div>
+    <div class="card-section">
+        <h3>Archivo completo</h3>
+        <iframe src="https://docs.google.com/spreadsheets/d/1g8g4YVEk1mZ8IF86sLmqfoXYBDQjsTHe/preview" width="100%" height="400"></iframe>
+    </div>
+</div>
+
+<!-- PANTALLA: GALERÍA -->
+<div id="gal" class="tab">
+    <div class="card-section">
+        <h2><i class="fa-solid fa-images"></i> Galería de Fotos</h2>
+        <iframe src="https://docs.google.com/spreadsheets/d/1RLkiCHt-R_CjBlUgBM4YS_grRo8Wp5Rl/preview" width="100%" height="550"></iframe>
+    </div>
+</div>
+
+<!-- PANTALLA: VIDEOS -->
+<div id="vid" class="tab">
+    <div class="card-section">
+        <h2><i class="fa-solid fa-video"></i> Videos</h2>
+        <iframe src="https://docs.google.com/spreadsheets/d/1e6x93z5jkCPXMkNWPR_juLbabQXbpEot/preview" width="100%" height="550"></iframe>
+    </div>
+</div>
+
+<!-- BARRA DE NAVEGACIÓN INFERIOR (MENÚ APP) -->
+<div class="bottom-nav">
+    <div class="nav-item active" onclick="showTab('news', this)">
+        <i class="fa-solid fa-newspaper"></i>
+        <span>Inicio</span>
+    </div>
+    <div class="nav-item" onclick="showTab('gal', this)">
+        <i class="fa-solid fa-images"></i>
+        <span>Galería</span>
+    </div>
+    <div class="nav-item" onclick="showTab('vid', this)">
+        <i class="fa-solid fa-video"></i>
+        <span>Videos</span>
+    </div>
+    <div class="nav-item" onclick="showTab('docs', this)">
+        <i class="fa-solid fa-chart-line"></i>
+        <span>Finanzas</span>
+    </div>
 </div>
 
 <script>
-// Reportes de Google Charts
+// Google Charts
 google.charts.load('current', {'packages':['corechart']});
+
 const SHEET_ID = "1g8g4YVEk1mZ8IF86sLmqfoXYBDQjsTHe";
 const meses = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 
-function limpiarNumero(valor){
-    if(typeof valor === "string"){ valor = valor.replace(/[^\d.-]/g,""); }
+function limpiarNumero(valor) {
+    if (typeof valor === "string") { valor = valor.replace(/[^\d.-]/g, ""); }
     return parseFloat(valor) || 0;
 }
 
-function query(sheet, callback){
+function query(sheet, callback) {
     const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?sheet=${encodeURIComponent(sheet)}&headers=1`;
     const q = new google.visualization.Query(url);
-    q.send(res=>{
-        if(res.isError()){ console.error("Error en hoja:", sheet); callback(null); }
-        else{ callback(res.getDataTable()); }
+    q.send(res => {
+        if (res.isError()) { console.error("Error en hoja:", sheet); callback(null); }
+        else { callback(res.getDataTable()); }
     });
 }
 
-function calcularPorMes(data, mesIndex, year){
+function calcularPorMes(data, mesIndex, year) {
     let total = 0;
-    for(let i=0;i<data.getNumberOfRows();i++){
-        let fecha = new Date(data.getValue(i,0));
-        let monto = limpiarNumero(data.getValue(i,3));
-        if(fecha instanceof Date && !isNaN(fecha)){
-            if(fecha.getMonth() === mesIndex && fecha.getFullYear() === year){ total += monto; }
+    for (let i = 0; i < data.getNumberOfRows(); i++) {
+        let fecha = new Date(data.getValue(i, 0));
+        let monto = limpiarNumero(data.getValue(i, 3));
+        if (fecha instanceof Date && !isNaN(fecha)) {
+            if (fecha.getMonth() === mesIndex && fecha.getFullYear() === year) { total += monto; }
         }
     }
     return total;
 }
 
-function formatoCordobas(valor){
-    return "C$ " + valor.toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:2});
+function formatoCordobas(valor) {
+    return "C$ " + valor.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-function cargarDatos(mesIndex, year){
-    query("INGRESOS", ingresosData=>{
-        query("EGRESOS", egresosData=>{
+function cargarDatos(mesIndex, year) {
+    query("INGRESOS", ingresosData => {
+        query("EGRESOS", egresosData => {
             let ingresos = ingresosData ? calcularPorMes(ingresosData, mesIndex, year) : 0;
             let egresos = egresosData ? calcularPorMes(egresosData, mesIndex, year) : 0;
             let diferencia = ingresos - egresos;
@@ -379,39 +546,50 @@ function cargarDatos(mesIndex, year){
             document.getElementById("egresos").innerText = formatoCordobas(egresos);
             document.getElementById("diferencia").innerText = formatoCordobas(diferencia);
 
-            const chartData = google.visualization.arrayToDataTable([['Tipo','Monto'], ['Ingresos', ingresos], ['Egresos', egresos]]);
-            const chart = new google.visualization.ColumnChart(document.getElementById('chart_div'));
-            chart.draw(chartData,{title:`Reporte - ${meses[mesIndex]} ${year}`, legend:{position:"none"}});
+            const chartData = google.visualization.arrayToDataTable([['Tipo', 'Monto'], ['Ingresos', ingresos], ['Egresos', egresos]]);
+            const chart.draw(chartData, { title: `Reporte - ${meses[mesIndex]} ${year}`, legend: { position: "none" } });
         });
     });
 }
 
-function iniciar(){
+function iniciar() {
     const select = document.getElementById("mesSelector");
     const year = new Date().getFullYear();
-    meses.forEach((mes,index)=>{
+    select.innerHTML = '';
+    meses.forEach((mes, index) => {
         let option = document.createElement("option");
-        option.value = index; option.text = mes + " " + year;
+        option.value = index; 
+        option.text = mes + " " + year;
         select.appendChild(option);
     });
-    select.addEventListener("change",()=>{ cargarDatos(parseInt(select.value), year); });
+    select.addEventListener("change", () => { cargarDatos(parseInt(select.value), year); });
     const mesActual = new Date().getMonth();
     select.value = mesActual;
     cargarDatos(mesActual, year);
 }
 
-async function descargarPDF(){
+async function descargarPDF() {
     const { jsPDF } = window.jspdf;
     const reporte = document.getElementById("reportePDF");
-    const canvas = await html2canvas(reporte,{scale:2});
+    const canvas = await html2canvas(reporte, { scale: 2 });
     const imgData = canvas.toDataURL("image/png");
-    const pdf = new jsPDF("p","mm","a4");
+    const pdf = new jsPDF("p", "mm", "a4");
     const ancho = 190;
     const alto = (canvas.height * ancho) / canvas.width;
     pdf.addImage(imgData, "PNG", 10, 10, ancho, alto);
     pdf.save("Reporte_Sindicato.pdf");
 }
+
 google.charts.setOnLoadCallback(iniciar);
+
+// Registro de la App Instalable (Service Worker)
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg => console.log('App lista y registrada:', reg.scope))
+      .catch(err => console.log('Error al registrar App:', err));
+  });
+}
 </script>
 </body>
 </html>
