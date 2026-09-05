@@ -578,19 +578,22 @@ async function descargarPDF() {
     pdf.save("Reporte_Sindicato.pdf");
 }
 
-// Control del botón 'Atrás' en la app para confirmar salida
-window.addEventListener('load', () => {
-    history.pushState({ page: 1 }, "", "");
-    
-    window.onpopstate = function () {
+// Control del botón 'Atrás' en la app (Respuesta al primer intento)
+(function prepararSalida() {
+    history.pushState(null, document.title, location.href);
+    window.addEventListener('popstate', function () {
         let salir = confirm("¿Deseas salir de la aplicación?");
         if (salir) {
-            history.back();
+            if (navigator.app && navigator.app.exitApp) {
+                navigator.app.exitApp();
+            } else {
+                history.back();
+            }
         } else {
-            history.pushState({ page: 1 }, "", "");
+            history.pushState(null, document.title, location.href);
         }
-    };
-});
+    });
+})();
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
