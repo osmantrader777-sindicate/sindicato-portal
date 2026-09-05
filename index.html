@@ -551,6 +551,7 @@ function cargarDatos(mesIndex, year) {
 
 function iniciar() {
     const select = document.getElementById("mesSelector");
+    if (!select) return;
     const year = new Date().getFullYear();
     select.innerHTML = '';
     meses.forEach((mes, index) => {
@@ -576,6 +577,20 @@ async function descargarPDF() {
     pdf.addImage(imgData, "PNG", 10, 10, ancho, alto);
     pdf.save("Reporte_Sindicato.pdf");
 }
+
+// Control del botón 'Atrás' en la app para confirmar salida
+window.addEventListener('load', () => {
+    history.pushState({ page: 1 }, "", "");
+    
+    window.onpopstate = function () {
+        let salir = confirm("¿Deseas salir de la aplicación?");
+        if (salir) {
+            history.back();
+        } else {
+            history.pushState({ page: 1 }, "", "");
+        }
+    };
+});
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
