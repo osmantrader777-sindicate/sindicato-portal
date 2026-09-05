@@ -32,12 +32,11 @@
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     margin: 0;
-    padding: 0 0 75px 0; /* Espacio inferior para el menú */
+    padding: 0 0 75px 0;
     background: #f0f2f5;
     color: #333;
 }
 
-/* Encabezado de la App */
 .app-header {
     background: #003366;
     color: white;
@@ -55,7 +54,6 @@ body {
     font-weight: 600;
 }
 
-/* Secciones / Pantallas */
 .tab {
     display: none;
     padding: 12px;
@@ -65,7 +63,6 @@ body {
     display: block;
 }
 
-/* Tarjetas */
 .card-section {
     background: #ffffff;
     padding: 16px;
@@ -79,7 +76,6 @@ body {
     color: #003366;
 }
 
-/* Finanzas */
 .summary {
     display: flex;
     gap: 10px;
@@ -114,7 +110,6 @@ body {
     margin-top: 15px;
 }
 
-/* Formularios */
 select, input, textarea {
     width: 100%;
     padding: 12px;
@@ -140,7 +135,6 @@ button:active {
     opacity: 0.85;
 }
 
-/* Noticias */
 .news-card {
     border: 1px solid #e1e4e8;
     border-radius: 10px;
@@ -171,7 +165,6 @@ button:active {
     margin-bottom: 15px;
 }
 
-/* Barra de Navegación Inferior (Menú Móvil) */
 .bottom-nav {
     position: fixed;
     bottom: 0;
@@ -411,12 +404,10 @@ function limpiarFormulario() {
 
 <body>
 
-<!-- Encabezado de la App -->
 <div class="app-header">
     <h1>Sindicato Juan Flores Vivas</h1>
 </div>
 
-<!-- PANTALLA: NOTICIAS (INICIO) -->
 <div id="news" class="tab active">
     <div class="card-section">
         <h2><i class="fa-regular fa-newspaper"></i> Noticias Recientes</h2>
@@ -443,7 +434,6 @@ function limpiarFormulario() {
     </div>
 </div>
 
-<!-- PANTALLA: FINANZAS -->
 <div id="docs" class="tab">
     <div class="card-section" id="reportePDF">
         <h2><i class="fa-solid fa-chart-line"></i> Reporte Financiero</h2>
@@ -462,7 +452,6 @@ function limpiarFormulario() {
     </div>
 </div>
 
-<!-- PANTALLA: GALERÍA -->
 <div id="gal" class="tab">
     <div class="card-section">
         <h2><i class="fa-solid fa-images"></i> Galería de Fotos</h2>
@@ -470,7 +459,6 @@ function limpiarFormulario() {
     </div>
 </div>
 
-<!-- PANTALLA: VIDEOS -->
 <div id="vid" class="tab">
     <div class="card-section">
         <h2><i class="fa-solid fa-video"></i> Videos</h2>
@@ -478,7 +466,6 @@ function limpiarFormulario() {
     </div>
 </div>
 
-<!-- BARRA DE NAVEGACIÓN INFERIOR (MENÚ APP) -->
 <div class="bottom-nav">
     <div class="nav-item active" onclick="showTab('news', this)">
         <i class="fa-solid fa-newspaper"></i>
@@ -499,8 +486,15 @@ function limpiarFormulario() {
 </div>
 
 <script>
-// Google Charts
-google.charts.load('current', {'packages':['corechart']});
+// Carga segura de Google Charts
+let googleChartsCargado = false;
+if (typeof google !== 'undefined' && google.charts) {
+    google.charts.load('current', {'packages':['corechart']});
+    google.charts.setOnLoadCallback(() => {
+        googleChartsCargado = true;
+        iniciar();
+    });
+}
 
 const SHEET_ID = "1g8g4YVEk1mZ8IF86sLmqfoXYBDQjsTHe";
 const meses = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
@@ -536,6 +530,8 @@ function formatoCordobas(valor) {
 }
 
 function cargarDatos(mesIndex, year) {
+    if (!googleChartsCargado) return;
+    
     query("INGRESOS", ingresosData => {
         query("EGRESOS", egresosData => {
             let ingresos = ingresosData ? calcularPorMes(ingresosData, mesIndex, year) : 0;
@@ -581,9 +577,6 @@ async function descargarPDF() {
     pdf.save("Reporte_Sindicato.pdf");
 }
 
-google.charts.setOnLoadCallback(iniciar);
-
-// Registro de la App Instalable (Service Worker)
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js?v=2')
