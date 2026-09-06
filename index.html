@@ -10,11 +10,13 @@
 <meta name="theme-color" content="#003366">
 <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3135/3135715.png">
 
-<!-- Iconos de FontAwesome para la App -->
+<!-- Iconos de FontAwesome -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-<!-- Librerías Externas -->
-<script src="https://www.gstatic.com/charts/loader.js"></script>
+<!-- Chart.js (Motor de gráficas compatible con WebView y offline) -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- Exportación de PDF -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
@@ -105,8 +107,10 @@ body {
     color: #003366;
 }
 
-#chart_div {
+.chart-wrapper {
+    position: relative;
     height: 260px;
+    width: 100%;
     margin-top: 15px;
 }
 
@@ -254,6 +258,8 @@ window.addEventListener('DOMContentLoaded', () => {
         }
         cargarNoticiasFirestore();
     });
+
+    iniciarFinanzas();
 });
 
 function loginAdmin() {
@@ -444,7 +450,9 @@ function limpiarFormulario() {
             <div class="card-finance"><h3>Egresos</h3><p id="egresos">C$ 0.00</p></div>
             <div class="card-finance"><h3>Diferencia</h3><p id="diferencia">C$ 0.00</p></div>
         </div>
-        <div id="chart_div"></div>
+        <div class="chart-wrapper">
+            <canvas id="financeChart"></canvas>
+        </div>
     </div>
     <div class="card-section">
         <h3>Archivo completo</h3>
@@ -486,42 +494,56 @@ function limpiarFormulario() {
 </div>
 
 <script>
-// Carga segura de Google Charts
-let googleChartsCargado = false;
-if (typeof google !== 'undefined' && google.charts) {
-    google.charts.load('current', {'packages':['corechart']});
-    google.charts.setOnLoadCallback(() => {
-        googleChartsCargado = true;
-        iniciar();
-    });
-}
-
 const SHEET_ID = "1g8g4YVEk1mZ8IF86sLmqfoXYBDQjsTHe";
 const meses = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+let chartInstance = null;
 
 function limpiarNumero(valor) {
     if (typeof valor === "string") { valor = valor.replace(/[^\d.-]/g, ""); }
     return parseFloat(valor) || 0;
 }
 
-function query(sheet, callback) {
-    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?sheet=${encodeURIComponent(sheet)}&headers=1`;
-    const q = new google.visualization.Query(url);
-    q.send(res => {
-        if (res.isError()) { console.error("Error en hoja:", sheet); callback(null); }
-        else { callback(res.getDataTable()); }
-    });
+// Carga directa en formato JSON para compatibilidad total con Datos Móviles
+async function fetchSheetData(sheetName) {
+    try {
+        const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?sheet=${encodeURIComponent(sheetName)}&tqx=out:json`;
+        const response = await fetch(url);
+        const text = await response.text();
+        const jsonString = text.substring(47, text.length - 2);
+        const data = JSON.parse(jsonString);
+        return data.table.rows;
+    } catch (e) {
+        console.error("Error obteniendo datos:", e);
+        return [];
+    }
 }
 
-function calcularPorMes(data, mesIndex, year) {
+function calcularPorMesRows(rows, mesIndex, year) {
     let total = 0;
-    for (let i = 0; i < data.getNumberOfRows(); i++) {
-        let fecha = new Date(data.getValue(i, 0));
-        let monto = limpiarNumero(data.getValue(i, 3));
-        if (fecha instanceof Date && !isNaN(fecha)) {
-            if (fecha.getMonth() === mesIndex && fecha.getFullYear() === year) { total += monto; }
+    if (!rows) return total;
+    
+    rows.forEach(row => {
+        if (row.c && row.c[0] && row.c[3]) {
+            let rawFecha = row.c[0].v;
+            let monto = limpiarNumero(row.c[3].v);
+            
+            let fecha = null;
+            if (typeof rawFecha === "string" && rawFecha.startsWith("Date(")) {
+                let parts = rawFecha.match(/\d+/g);
+                if (parts) {
+                    fecha = new Date(parts[0], parts[1], parts[2]);
+                }
+            } else {
+                fecha = new Date(rawFecha);
+            }
+            
+            if (fecha && !isNaN(fecha.getTime())) {
+                if (fecha.getMonth() === mesIndex && fecha.getFullYear() === year) {
+                    total += monto;
+                }
+            }
         }
-    }
+    });
     return total;
 }
 
@@ -529,56 +551,110 @@ function formatoCordobas(valor) {
     return "C$ " + valor.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-function cargarDatos(mesIndex, year) {
-    if (!googleChartsCargado) return;
+async function cargarDatos(mesIndex, year) {
+    const ingresosRows = await fetchSheetData("INGRESOS");
+    const egresosRows = await fetchSheetData("EGRESOS");
+
+    let ingresos = calcularPorMesRows(ingresosRows, mesIndex, year);
+    let egresos = calcularPorMesRows(egresosRows, mesIndex, year);
+    let diferencia = ingresos - egresos;
+
+    document.getElementById("ingresos").innerText = formatoCordobas(ingresos);
+    document.getElementById("egresos").innerText = formatoCordobas(egresos);
+    document.getElementById("diferencia").innerText = formatoCordobas(diferencia);
+
+    renderChart(ingresos, egresos, meses[mesIndex], year);
+}
+
+function renderChart(ingresos, egresos, mesNombre, year) {
+    const ctx = document.getElementById('financeChart').getContext('2d');
     
-    query("INGRESOS", ingresosData => {
-        query("EGRESOS", egresosData => {
-            let ingresos = ingresosData ? calcularPorMes(ingresosData, mesIndex, year) : 0;
-            let egresos = egresosData ? calcularPorMes(egresosData, mesIndex, year) : 0;
-            let diferencia = ingresos - egresos;
+    if (chartInstance) {
+        chartInstance.destroy();
+    }
 
-            document.getElementById("ingresos").innerText = formatoCordobas(ingresos);
-            document.getElementById("egresos").innerText = formatoCordobas(egresos);
-            document.getElementById("diferencia").innerText = formatoCordobas(diferencia);
-
-            const chartData = google.visualization.arrayToDataTable([['Tipo', 'Monto'], ['Ingresos', ingresos], ['Egresos', egresos]]);
-            const chart = new google.visualization.ColumnChart(document.getElementById('chart_div'));
-            chart.draw(chartData, { title: `Reporte - ${meses[mesIndex]} ${year}`, legend: { position: "none" } });
-        });
+    chartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['Ingresos', 'Egresos'],
+            datasets: [{
+                label: 'Monto C$',
+                data: [ingresos, egresos],
+                backgroundColor: ['#28a745', '#dc3545'],
+                borderRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                title: {
+                    display: true,
+                    text: `Reporte - ${mesNombre} ${year}`,
+                    color: '#003366',
+                    font: { size: 14, weight: 'bold' }
+                }
+            },
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
     });
 }
 
-function iniciar() {
+function iniciarFinanzas() {
     const select = document.getElementById("mesSelector");
     if (!select) return;
     const year = new Date().getFullYear();
     select.innerHTML = '';
+    
     meses.forEach((mes, index) => {
         let option = document.createElement("option");
         option.value = index; 
         option.text = mes + " " + year;
         select.appendChild(option);
     });
-    select.addEventListener("change", () => { cargarDatos(parseInt(select.value), year); });
+    
+    select.addEventListener("change", () => { 
+        cargarDatos(parseInt(select.value), year); 
+    });
+    
     const mesActual = new Date().getMonth();
     select.value = mesActual;
     cargarDatos(mesActual, year);
 }
 
 async function descargarPDF() {
-    const { jsPDF } = window.jspdf;
-    const reporte = document.getElementById("reportePDF");
-    const canvas = await html2canvas(reporte, { scale: 2 });
-    const imgData = canvas.toDataURL("image/png");
-    const pdf = new jsPDF("p", "mm", "a4");
-    const ancho = 190;
-    const alto = (canvas.height * ancho) / canvas.width;
-    pdf.addImage(imgData, "PNG", 10, 10, ancho, alto);
-    pdf.save("Reporte_Sindicato.pdf");
+    try {
+        const { jsPDF } = window.jspdf;
+        const reporte = document.getElementById("reportePDF");
+        
+        const canvas = await html2canvas(reporte, { scale: 2, useCORS: true });
+        const imgData = canvas.toDataURL("image/png");
+        const pdf = new jsPDF("p", "mm", "a4");
+        const ancho = 190;
+        const alto = (canvas.height * ancho) / canvas.width;
+        
+        pdf.addImage(imgData, "PNG", 10, 10, ancho, alto);
+        
+        // Exportación compatible con WebViews de Android
+        const pdfBlob = pdf.output("blob");
+        const blobUrl = URL.createObjectURL(pdfBlob);
+        
+        const downloadLink = document.createElement("a");
+        downloadLink.href = blobUrl;
+        downloadLink.download = `Reporte_Sindicato_${new Date().getTime()}.pdf`;
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+        
+    } catch (e) {
+        alert("Error al generar el PDF: " + e.message);
+    }
 }
 
-// Control del botón 'Atrás' en la app (Respuesta al primer intento)
+// Control del botón 'Atrás' en la app
 (function prepararSalida() {
     history.pushState(null, document.title, location.href);
     window.addEventListener('popstate', function () {
