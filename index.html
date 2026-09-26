@@ -188,9 +188,10 @@ button:active {
     text-align: center;
     color: #003366;
     font-weight: 600;
+    cursor: pointer;
 }
 
-/* Modal Visor de Imágenes */
+/* Visor Carrusel Pantalla Completa (Lightbox con Botones) */
 .lightbox-modal {
     display: none;
     position: fixed;
@@ -199,7 +200,7 @@ button:active {
     top: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0,0,0,0.9);
+    background-color: rgba(0,0,0,0.92);
     justify-content: center;
     align-items: center;
     flex-direction: column;
@@ -207,28 +208,51 @@ button:active {
 }
 
 .lightbox-modal img {
-    max-width: 95%;
-    max-height: 80vh;
+    max-width: 85%;
+    max-height: 75vh;
     border-radius: 8px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.6);
 }
 
 .lightbox-caption {
     color: white;
-    margin-top: 12px;
+    margin-top: 15px;
     font-size: 1rem;
     text-align: center;
 }
 
 .lightbox-close {
     position: absolute;
-    top: 20px;
-    right: 25px;
+    top: 15px;
+    right: 20px;
     color: white;
-    font-size: 32px;
+    font-size: 35px;
     font-weight: bold;
     cursor: pointer;
+    z-index: 2005;
 }
+
+.lightbox-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: none;
+    font-size: 24px;
+    padding: 15px 12px;
+    cursor: pointer;
+    border-radius: 6px;
+    z-index: 2005;
+    width: auto;
+}
+
+.lightbox-btn:active {
+    background: rgba(255, 255, 255, 0.4);
+}
+
+.lightbox-prev { left: 10px; }
+.lightbox-next { right: 10px; }
 
 /* Lista de Videos */
 .video-list {
@@ -324,6 +348,8 @@ const db = firebase.firestore();
 
 let noticiaEditandoId = null; 
 let esAdmin = false; 
+let galeriaFotosArray = [];
+let indiceFotoActual = 0;
 
 function showTab(id, element) {
     document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
@@ -454,7 +480,7 @@ function cargarNoticiasFirestore() {
                                <p style="white-space: pre-wrap;">${escapeHtml(data.descripcion || '')}</p>`;
             
             if (data.imagen) {
-                htmlContent += `<img id="img_${id}" src="${data.imagen}" style="max-width:100%; border-radius:8px; margin-top:8px; cursor:pointer;" onclick="abrirFotoModal('${data.imagen}', '${escapeHtml(data.titulo || '')}')">`;
+                htmlContent += `<img id="img_${id}" src="${data.imagen}" style="max-width:100%; border-radius:8px; margin-top:8px; cursor:pointer;" onclick="abrirVisorUnica('${data.imagen}', '${escapeHtml(data.titulo || '')}')">`;
             }
 
             if (esAdmin) {
@@ -508,21 +534,29 @@ function cargarGaleriaFotos() {
         let grid = document.getElementById('galeriaFotosGrid');
         if (!grid) return;
         grid.innerHTML = '';
+        galeriaFotosArray = [];
 
         if (snapshot.empty) {
             grid.innerHTML = '<p style="color:#666; font-size:0.9rem; grid-column:1/-1;">Aún no hay fotos cargadas en esta sección. Inicia sesión como administrador para agregar fotos.</p>';
             return;
         }
 
+        let idx = 0;
         snapshot.forEach(doc => {
             let id = doc.id;
             let data = doc.data();
 
+            galeriaFotosArray.push({
+                url: data.imagen,
+                titulo: data.titulo || 'Foto Sindicato'
+            });
+
+            let currentIdx = idx;
             let card = document.createElement('div');
             card.className = 'gallery-card';
 
-            let html = `<img src="${data.imagen}" alt="Foto Sindicato" onclick="abrirFotoModal('${data.imagen}', '${escapeHtml(data.titulo || '')}')">
-                        <div class="info" onclick="abrirFotoModal('${data.imagen}', '${escapeHtml(data.titulo || '')}')">
+            let html = `<img src="${data.imagen}" alt="Foto Sindicato" onclick="abrirVisorGaleria(${currentIdx})">
+                        <div class="info" onclick="abrirVisorGaleria(${currentIdx})">
                             ${escapeHtml(data.titulo || '')}
                         </div>`;
 
@@ -532,6 +566,7 @@ function cargarGaleriaFotos() {
 
             card.innerHTML = html;
             grid.appendChild(card);
+            idx++;
         });
     });
 }
@@ -618,23 +653,42 @@ function toggleDrive(id) {
     }
 }
 
-// ---------------- VISOR DE IMÁGENES PANTALLA COMPLETA ----------------
-function abrirFotoModal(url, titulo) {
-    let modal = document.getElementById('lightboxModal');
-    let img = document.getElementById('lightboxImg');
-    let caption = document.getElementById('lightboxCaption');
-    if (modal && img) {
-        img.src = url;
-        caption.innerText = titulo || '';
-        modal.style.display = 'flex';
+// ---------------- VISOR CARRUSEL DE FOTOS ----------------
+function abrirVisorGaleria(index) {
+    if (galeriaFotosArray.length === 0) return;
+    indiceFotoActual = index;
+    actualizarCarruselModal();
+    document.getElementById('lightboxModal').style.display = 'flex';
+}
+
+function abrirVisorUnica(url, titulo) {
+    galeriaFotosArray = [{ url: url, titulo: titulo || '' }];
+    indiceFotoActual = 0;
+    actualizarCarruselModal();
+    document.getElementById('lightboxModal').style.display = 'flex';
+}
+
+function moverCarrusel(direccion, event) {
+    if (event) event.stopPropagation();
+    indiceFotoActual += direccion;
+    if (indiceFotoActual < 0) {
+        indiceFotoActual = galeriaFotosArray.length - 1;
+    } else if (indiceFotoActual >= galeriaFotosArray.length) {
+        indiceFotoActual = 0;
+    }
+    actualizarCarruselModal();
+}
+
+function actualizarCarruselModal() {
+    let foto = galeriaFotosArray[indiceFotoActual];
+    if (foto) {
+        document.getElementById('lightboxImg').src = foto.url;
+        document.getElementById('lightboxCaption').innerText = `${foto.titulo} (${indiceFotoActual + 1} de ${galeriaFotosArray.length})`;
     }
 }
 
 function cerrarFotoModal() {
-    let modal = document.getElementById('lightboxModal');
-    if (modal) {
-        modal.style.display = 'none';
-    }
+    document.getElementById('lightboxModal').style.display = 'none';
 }
 
 // ---------------- UTILIDADES ----------------
@@ -706,10 +760,12 @@ function limpiarFormulario() {
     <h1>Sindicato Juan Flores Vivas</h1>
 </div>
 
-<!-- VISOR PANTALLA COMPLETA -->
+<!-- VISOR CARRUSEL PANTALLA COMPLETA -->
 <div id="lightboxModal" class="lightbox-modal" onclick="cerrarFotoModal()">
     <span class="lightbox-close" onclick="cerrarFotoModal()">&times;</span>
+    <button class="lightbox-btn lightbox-prev" onclick="moverCarrusel(-1, event)"><i class="fa-solid fa-chevron-left"></i></button>
     <img id="lightboxImg" src="" alt="Foto Ampliada" onclick="event.stopPropagation()">
+    <button class="lightbox-btn lightbox-next" onclick="moverCarrusel(1, event)"><i class="fa-solid fa-chevron-right"></i></button>
     <div id="lightboxCaption" class="lightbox-caption"></div>
 </div>
 
@@ -985,7 +1041,7 @@ async function descargarPDF() {
     }
 }
 
-// CONTROL SIMPLIFICADO Y ÚNICO DE SALIDA
+// CONTROL DE SALIDA SIMPLE
 window.addEventListener('popstate', function () {
     let salir = confirm("¿Deseas salir de la aplicación?");
     if (salir) {
