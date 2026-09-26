@@ -158,37 +158,79 @@ button:active {
     color: #777;
 }
 
-/* Grilla de Galería de Fotos Nativas */
+/* Grilla de Galería con miniaturas más grandes */
 .gallery-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
     gap: 12px;
     margin-top: 15px;
 }
 
 .gallery-card {
     background: #fff;
-    border-radius: 8px;
+    border-radius: 10px;
     overflow: hidden;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    position: relative;
+    border: 1px solid #e1e4e8;
+    cursor: pointer;
 }
 
 .gallery-card img {
     width: 100%;
-    height: 130px;
+    height: 160px;
     object-fit: cover;
     display: block;
 }
 
 .gallery-card .info {
-    padding: 6px;
-    font-size: 0.8rem;
+    padding: 8px;
+    font-size: 0.85rem;
     text-align: center;
-    background: #fff;
+    color: #003366;
+    font-weight: 600;
 }
 
-/* Lista de Videos Nativos */
+/* Modal Visor de Imágenes en Pantalla Completa */
+.lightbox-modal {
+    display: none;
+    position: fixed;
+    z-index: 2000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.9);
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    padding: 15px;
+}
+
+.lightbox-modal img {
+    max-width: 95%;
+    max-height: 80vh;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+}
+
+.lightbox-caption {
+    color: white;
+    margin-top: 12px;
+    font-size: 1rem;
+    text-align: center;
+}
+
+.lightbox-close {
+    position: absolute;
+    top: 20px;
+    right: 25px;
+    color: white;
+    font-size: 30px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+/* Lista de Videos */
 .video-list {
     display: flex;
     flex-direction: column;
@@ -199,13 +241,14 @@ button:active {
 .video-card {
     background: #fff;
     border-radius: 10px;
-    padding: 10px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    padding: 12px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    border: 1px solid #e1e4e8;
 }
 
 .video-card video, .video-card iframe {
     width: 100%;
-    height: 220px;
+    height: 230px;
     border-radius: 8px;
     border: none;
 }
@@ -296,6 +339,10 @@ window.addEventListener('DOMContentLoaded', () => {
     let fInput = document.getElementById('fecha');
     if (fInput) fInput.value = new Date().toISOString().slice(0, 10);
 
+    cargarNoticiasFirestore();
+    cargarGaleriaFotos();
+    cargarGaleriaVideos();
+
     auth.onAuthStateChanged(user => {
         if (user) {
             esAdmin = true;
@@ -350,7 +397,7 @@ function publicar() {
     }
 
     if (fileFoto) {
-        comprimirImagen(fileFoto, 800, 0.7, function(imgComprimida) {
+        comprimirImagen(fileFoto, 1000, 0.7, function(imgComprimida) {
             guardarEnFirestore(txtTitulo, txtDescripcion, txtFecha, imgComprimida);
         });
     } else {
@@ -407,7 +454,7 @@ function cargarNoticiasFirestore() {
                                <p style="white-space: pre-wrap;">${escapeHtml(data.descripcion || '')}</p>`;
             
             if (data.imagen) {
-                htmlContent += `<img id="img_${id}" src="${data.imagen}" style="max-width:100%; border-radius:8px; margin-top:8px;">`;
+                htmlContent += `<img id="img_${id}" src="${data.imagen}" style="max-width:100%; border-radius:8px; margin-top:8px; cursor:pointer;" onclick="abrirFotoGrande('${data.imagen}', '${escapeHtml(data.titulo || '')}')">`;
             }
 
             if (esAdmin) {
@@ -443,15 +490,15 @@ function subirFotoGaleria() {
         return;
     }
 
-    comprimirImagen(fileFoto, 1000, 0.7, function(imgComprimida) {
+    comprimirImagen(fileFoto, 1200, 0.75, function(imgComprimida) {
         db.collection('GaleriaFotos').add({
-            titulo: tituloFoto || 'Foto del Sindicato',
+            titulo: tituloFoto || 'Foto Sindicato',
             imagen: imgComprimida,
             timestamp: firebase.firestore.FieldValue.serverTimestamp()
         }).then(() => {
             document.getElementById('galeriaTitulo').value = '';
             document.getElementById('galeriaInputFoto').value = '';
-            alert("¡Foto agregada a la galería con éxito!");
+            alert("¡Foto agregada a la galería!");
         }).catch(err => alert("Error al subir foto: " + err.message));
     });
 }
@@ -463,7 +510,7 @@ function cargarGaleriaFotos() {
         grid.innerHTML = '';
 
         if (snapshot.empty) {
-            grid.innerHTML = '<p style="color:#666; font-size:0.9rem;">Aún no hay fotos cargadas en la galería.</p>';
+            grid.innerHTML = '<p style="color:#666; font-size:0.9rem; grid-column:1/-1;">Aún no hay fotos cargadas en esta sección. Inicia sesión como administrador para agregar fotos.</p>';
             return;
         }
 
@@ -474,15 +521,13 @@ function cargarGaleriaFotos() {
             let card = document.createElement('div');
             card.className = 'gallery-card';
 
-            let html = `<a href="${data.imagen}" target="_blank">
-                            <img src="${data.imagen}" alt="Foto Sindicato">
-                        </a>
-                        <div class="info">
-                            <strong>${escapeHtml(data.titulo || '')}</strong>
+            let html = `<img src="${data.imagen}" alt="Foto Sindicato" onclick="abrirFotoGrande('${data.imagen}', '${escapeHtml(data.titulo || '')}')">
+                        <div class="info" onclick="abrirFotoGrande('${data.imagen}', '${escapeHtml(data.titulo || '')}')">
+                            ${escapeHtml(data.titulo || '')}
                         </div>`;
 
             if (esAdmin) {
-                html += `<button style="background:#dc3545; padding:4px; font-size:0.75rem; border-radius:0 0 8px 8px;" onclick="eliminarFotoGaleria('${id}')"><i class="fa-solid fa-trash"></i> Eliminar</button>`;
+                html += `<button style="background:#dc3545; padding:6px; font-size:0.75rem; border-radius:0 0 8px 8px; border:none;" onclick="eliminarFotoGaleria('${id}')"><i class="fa-solid fa-trash"></i> Eliminar</button>`;
             }
 
             card.innerHTML = html;
@@ -507,7 +552,6 @@ function subirVideoGaleria() {
         return;
     }
 
-    // Convertir enlace de YouTube regular a formato embed si aplica
     if (urlVideo.includes("watch?v=")) {
         urlVideo = urlVideo.replace("watch?v=", "embed/");
     } else if (urlVideo.includes("youtu.be/")) {
@@ -532,7 +576,7 @@ function cargarGaleriaVideos() {
         container.innerHTML = '';
 
         if (snapshot.empty) {
-            container.innerHTML = '<p style="color:#666; font-size:0.9rem;">Aún no hay videos disponibles.</p>';
+            container.innerHTML = '<p style="color:#666; font-size:0.9rem;">Aún no hay videos guardados en esta sección. Inicia sesión como administrador para publicar uno.</p>';
             return;
         }
 
@@ -552,7 +596,7 @@ function cargarGaleriaVideos() {
             }
 
             if (esAdmin) {
-                html += `<button style="background:#dc3545; padding:6px; margin-top:8px; font-size:0.8rem;" onclick="eliminarVideoGaleria('${id}')"><i class="fa-solid fa-trash"></i> Eliminar Video</button>`;
+                html += `<button style="background:#dc3545; padding:6px; margin-top:8px; font-size:0.8rem; border:none; border-radius:6px;" onclick="eliminarVideoGaleria('${id}')"><i class="fa-solid fa-trash"></i> Eliminar Video</button>`;
             }
 
             card.innerHTML = html;
@@ -565,6 +609,24 @@ function eliminarVideoGaleria(id) {
     if (confirm("¿Deseas eliminar este video?")) {
         db.collection('GaleriaVideos').doc(id).delete().catch(err => alert("Error: " + err.message));
     }
+}
+
+function toggleDrive(id) {
+    let el = document.getElementById(id);
+    if (el) {
+        el.style.display = (el.style.display === 'none' || el.style.display === '') ? 'block' : 'none';
+    }
+}
+
+// ---------------- VISOR DE FOTO GRANDE (LIGHTBOX) ----------------
+function abrirFotoGrande(url, titulo) {
+    document.getElementById('lightboxImg').src = url;
+    document.getElementById('lightboxCaption').innerText = titulo || '';
+    document.getElementById('lightboxModal').style.display = 'flex';
+}
+
+function cerrarFotoGrande() {
+    document.getElementById('lightboxModal').style.display = 'none';
 }
 
 // ---------------- UTILIDADES ----------------
@@ -636,6 +698,13 @@ function limpiarFormulario() {
     <h1>Sindicato Juan Flores Vivas</h1>
 </div>
 
+<!-- VISOR PANTALLA COMPLETA -->
+<div id="lightboxModal" class="lightbox-modal" onclick="cerrarFotoGrande()">
+    <span class="lightbox-close">&times;</span>
+    <img id="lightboxImg" src="" alt="Foto Ampliada">
+    <div id="lightboxCaption" class="lightbox-caption"></div>
+</div>
+
 <!-- PESTAÑA INICIO / NOTICIAS -->
 <div id="news" class="tab active">
     <div class="card-section">
@@ -651,7 +720,7 @@ function limpiarFormulario() {
         <button id="logoutBtn" onclick="logoutAdmin()" style="display:none; background:#dc3545; margin-bottom:15px;">Cerrar Sesión Admin</button>
 
         <div class="admin-only" style="background: #fff9e6; padding: 12px; border-radius: 8px; border: 1px dashed #ffc107; margin-bottom: 15px;">
-            <h4 style="color: #b98d00; margin-top: 0;">Panel de Publicación</h4>
+            <h4 style="color: #b98d00; margin-top: 0;">Panel de Publicación de Noticias</h4>
             <input id="titulo" placeholder="Título de la noticia">
             <input id="fecha" type="date">
             <textarea id="descripcion" style="height:90px" placeholder="Escribe el contenido aquí..."></textarea>
@@ -684,7 +753,7 @@ function limpiarFormulario() {
     </div>
 </div>
 
-<!-- PESTAÑA GALERÍA DE FOTOS (Firebase Directo) -->
+<!-- PESTAÑA GALERÍA DE FOTOS -->
 <div id="gal" class="tab">
     <div class="card-section">
         <h2><i class="fa-solid fa-images"></i> Galería de Fotos</h2>
@@ -697,10 +766,17 @@ function limpiarFormulario() {
         </div>
 
         <div id="galeriaFotosGrid" class="gallery-grid"></div>
+
+        <div style="margin-top:20px; border-top:1px solid #ddd; padding-top:15px;">
+            <button onclick="toggleDrive('driveFotos')" style="background:#6c757d; font-size:0.85rem;"><i class="fa-brands fa-google-drive"></i> Ver Archivo Histórico de Fotos (Drive)</button>
+            <div id="driveFotos" style="display:none; margin-top:10px;">
+                <iframe src="https://docs.google.com/spreadsheets/d/1RLkiCHt-R_CjBlUgBM4YS_grRo8Wp5Rl/preview" width="100%" height="450"></iframe>
+            </div>
+        </div>
     </div>
 </div>
 
-<!-- PESTAÑA VIDEOS (Firebase Directo) -->
+<!-- PESTAÑA VIDEOS -->
 <div id="vid" class="tab">
     <div class="card-section">
         <h2><i class="fa-solid fa-video"></i> Videos</h2>
@@ -713,6 +789,13 @@ function limpiarFormulario() {
         </div>
 
         <div id="galeriaVideosList" class="video-list"></div>
+
+        <div style="margin-top:20px; border-top:1px solid #ddd; padding-top:15px;">
+            <button onclick="toggleDrive('driveVideos')" style="background:#6c757d; font-size:0.85rem;"><i class="fa-brands fa-google-drive"></i> Ver Archivo Histórico de Videos (Drive)</button>
+            <div id="driveVideos" style="display:none; margin-top:10px;">
+                <iframe src="https://docs.google.com/spreadsheets/d/1e6x93z5jkCPXMkNWPR_juLbabQXbpEot/preview" width="100%" height="450"></iframe>
+            </div>
+        </div>
     </div>
 </div>
 
