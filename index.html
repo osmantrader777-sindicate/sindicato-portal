@@ -288,22 +288,21 @@ function publicar() {
     let txtDescripcion = document.getElementById('descripcion').value;
     let txtFecha = document.getElementById('fecha').value;
     let fileFoto = document.getElementById('foto').files[0];
+    let btnPub = document.getElementById('btnPublicar');
 
     if (!txtTitulo && !txtDescripcion) {
         alert("Por favor escribe un título o descripción.");
         return;
     }
 
+    btnPub.innerText = "Procesando...";
+    btnPub.disabled = true;
+
     if (fileFoto) {
-        let r = new FileReader();
-        r.onload = function(e) {
-            let imgData = e.target.result;
-            // Redimensionar imagen para evitar sobrepasar límites de datos
-            comprimirImagen(imgData, 800, 0.7, function(imgComprimida) {
-                guardarEnFirestore(txtTitulo, txtDescripcion, txtFecha, imgComprimida);
-            });
-        };
-        r.readAsDataURL(fileFoto);
+        // Comprimir fuertemente la imagen para evitar el error de "margen insuficiente"
+        comprimirYReducirImagen(fileFoto, 600, 0.5, function(imgReducida) {
+            guardarEnFirestore(txtTitulo, txtDescripcion, txtFecha, imgReducida);
+        });
     } else {
         if (noticiaEditandoId) {
             db.collection('Noticias').doc(noticiaEditandoId).get().then(doc => {
@@ -316,28 +315,34 @@ function publicar() {
     }
 }
 
-function comprimirImagen(base64Str, maxAncho, calidad, callback) {
-    let img = new Image();
-    img.src = base64Str;
-    img.onload = function() {
-        let canvas = document.createElement('canvas');
-        let width = img.width;
-        let height = img.height;
+function comprimirYReducirImagen(file, maxAncho, calidad, callback) {
+    let reader = new FileReader();
+    reader.onload = function(e) {
+        let img = new Image();
+        img.src = e.target.result;
+        img.onload = function() {
+            let canvas = document.createElement('canvas');
+            let width = img.width;
+            let height = img.height;
 
-        if (width > maxAncho) {
-            height = Math.round((height * maxAncho) / width);
-            width = maxAncho;
-        }
+            if (width > maxAncho) {
+                height = Math.round((height * maxAncho) / width);
+                width = maxAncho;
+            }
 
-        canvas.width = width;
-        canvas.height = height;
-        let ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, width, height);
-        callback(canvas.toDataURL('image/jpeg', calidad));
+            canvas.width = width;
+            canvas.height = height;
+            let ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+            
+            // Retorna imagen reducida en JPEG optimizado
+            callback(canvas.toDataURL('image/jpeg', calidad));
+        };
+        img.onerror = function() {
+            callback('');
+        };
     };
-    img.onerror = function() {
-        callback(base64Str);
-    };
+    reader.readAsDataURL(file);
 }
 
 function guardarEnFirestore(t, d, f, img) {
@@ -349,18 +354,30 @@ function guardarEnFirestore(t, d, f, img) {
         timestamp: firebase.firestore.FieldValue.serverTimestamp()
     };
 
+    let btnPub = document.getElementById('btnPublicar');
+
     if (noticiaEditandoId) {
         db.collection('Noticias').doc(noticiaEditandoId).update(datosNoticia)
         .then(() => {
             limpiarFormulario();
-            alert("¡Noticia actualizada!");
-        }).catch(err => alert("Error al actualizar: " + err.message));
+            alert("¡Noticia actualizada con éxito!");
+        })
+        .catch(err => alert("Error al actualizar: " + err.message))
+        .finally(() => {
+            btnPub.innerText = "Publicar noticia";
+            btnPub.disabled = false;
+        });
     } else {
         db.collection('Noticias').add(datosNoticia)
         .then(() => {
             limpiarFormulario();
-            alert("¡Noticia publicada!");
-        }).catch(err => alert("Error al publicar: " + err.message));
+            alert("¡Noticia publicada con éxito!");
+        })
+        .catch(err => alert("Error al publicar: " + err.message))
+        .finally(() => {
+            btnPub.innerText = "Publicar noticia";
+            btnPub.disabled = false;
+        });
     }
 }
 
