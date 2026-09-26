@@ -161,30 +161,73 @@ button:active {
 /* Grilla de Galería */
 .gallery-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
     gap: 10px;
     margin-top: 15px;
 }
 
 .gallery-card {
     background: #fff;
-    border-radius: 8px;
+    border-radius: 10px;
     overflow: hidden;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     border: 1px solid #e1e4e8;
 }
 
 .gallery-card img {
     width: 100%;
-    height: 120px;
+    height: 140px;
     object-fit: cover;
     display: block;
+    cursor: pointer;
 }
 
 .gallery-card .info {
     padding: 6px;
     font-size: 0.8rem;
     text-align: center;
+    color: #003366;
+    font-weight: 600;
+}
+
+/* Modal Visor de Imágenes */
+.lightbox-modal {
+    display: none;
+    position: fixed;
+    z-index: 2000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.9);
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    padding: 15px;
+}
+
+.lightbox-modal img {
+    max-width: 95%;
+    max-height: 80vh;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+}
+
+.lightbox-caption {
+    color: white;
+    margin-top: 12px;
+    font-size: 1rem;
+    text-align: center;
+}
+
+.lightbox-close {
+    position: absolute;
+    top: 20px;
+    right: 25px;
+    color: white;
+    font-size: 32px;
+    font-weight: bold;
+    cursor: pointer;
 }
 
 /* Lista de Videos */
@@ -205,7 +248,7 @@ button:active {
 
 .video-card video, .video-card iframe {
     width: 100%;
-    height: 220px;
+    height: 230px;
     border-radius: 8px;
     border: none;
 }
@@ -296,7 +339,6 @@ window.addEventListener('DOMContentLoaded', () => {
     let fInput = document.getElementById('fecha');
     if (fInput) fInput.value = new Date().toISOString().slice(0, 10);
 
-    // Cargar galerías de inmediato para cualquier usuario
     cargarNoticiasFirestore();
     cargarGaleriaFotos();
     cargarGaleriaVideos();
@@ -313,7 +355,6 @@ window.addEventListener('DOMContentLoaded', () => {
             document.getElementById('loginSection').style.display = 'block';
             document.getElementById('logoutBtn').style.display = 'none';
         }
-        // Refrescar vistas para actualizar botones de edición/eliminación
         cargarNoticiasFirestore();
         cargarGaleriaFotos();
         cargarGaleriaVideos();
@@ -356,7 +397,7 @@ function publicar() {
     }
 
     if (fileFoto) {
-        comprimirImagen(fileFoto, 800, 0.7, function(imgComprimida) {
+        comprimirImagen(fileFoto, 1000, 0.7, function(imgComprimida) {
             guardarEnFirestore(txtTitulo, txtDescripcion, txtFecha, imgComprimida);
         });
     } else {
@@ -413,7 +454,7 @@ function cargarNoticiasFirestore() {
                                <p style="white-space: pre-wrap;">${escapeHtml(data.descripcion || '')}</p>`;
             
             if (data.imagen) {
-                htmlContent += `<img id="img_${id}" src="${data.imagen}" style="max-width:100%; border-radius:8px; margin-top:8px;">`;
+                htmlContent += `<img id="img_${id}" src="${data.imagen}" style="max-width:100%; border-radius:8px; margin-top:8px; cursor:pointer;" onclick="abrirFotoModal('${data.imagen}', '${escapeHtml(data.titulo || '')}')">`;
             }
 
             if (esAdmin) {
@@ -449,7 +490,7 @@ function subirFotoGaleria() {
         return;
     }
 
-    comprimirImagen(fileFoto, 1000, 0.7, function(imgComprimida) {
+    comprimirImagen(fileFoto, 1200, 0.75, function(imgComprimida) {
         db.collection('GaleriaFotos').add({
             titulo: tituloFoto || 'Foto Sindicato',
             imagen: imgComprimida,
@@ -469,7 +510,7 @@ function cargarGaleriaFotos() {
         grid.innerHTML = '';
 
         if (snapshot.empty) {
-            grid.innerHTML = '<p style="color:#666; font-size:0.9rem; grid-column:1/-1;">Aún no hay fotos cargadas en esta sección. ¡Usa el panel de administración arriba para agregar la primera!</p>';
+            grid.innerHTML = '<p style="color:#666; font-size:0.9rem; grid-column:1/-1;">Aún no hay fotos cargadas en esta sección. Inicia sesión como administrador para agregar fotos.</p>';
             return;
         }
 
@@ -480,11 +521,9 @@ function cargarGaleriaFotos() {
             let card = document.createElement('div');
             card.className = 'gallery-card';
 
-            let html = `<a href="${data.imagen}" target="_blank">
-                            <img src="${data.imagen}" alt="Foto Sindicato">
-                        </a>
-                        <div class="info">
-                            <strong>${escapeHtml(data.titulo || '')}</strong>
+            let html = `<img src="${data.imagen}" alt="Foto Sindicato" onclick="abrirFotoModal('${data.imagen}', '${escapeHtml(data.titulo || '')}')">
+                        <div class="info" onclick="abrirFotoModal('${data.imagen}', '${escapeHtml(data.titulo || '')}')">
+                            ${escapeHtml(data.titulo || '')}
                         </div>`;
 
             if (esAdmin) {
@@ -537,7 +576,7 @@ function cargarGaleriaVideos() {
         container.innerHTML = '';
 
         if (snapshot.empty) {
-            container.innerHTML = '<p style="color:#666; font-size:0.9rem;">Aún no hay videos guardados en esta sección. Usa el panel de administración arriba para publicar uno.</p>';
+            container.innerHTML = '<p style="color:#666; font-size:0.9rem;">Aún no hay videos guardados en esta sección. Inicia sesión como administrador para publicar uno.</p>';
             return;
         }
 
@@ -576,6 +615,25 @@ function toggleDrive(id) {
     let el = document.getElementById(id);
     if (el) {
         el.style.display = (el.style.display === 'none' || el.style.display === '') ? 'block' : 'none';
+    }
+}
+
+// ---------------- VISOR DE IMÁGENES PANTALLA COMPLETA ----------------
+function abrirFotoModal(url, titulo) {
+    let modal = document.getElementById('lightboxModal');
+    let img = document.getElementById('lightboxImg');
+    let caption = document.getElementById('lightboxCaption');
+    if (modal && img) {
+        img.src = url;
+        caption.innerText = titulo || '';
+        modal.style.display = 'flex';
+    }
+}
+
+function cerrarFotoModal() {
+    let modal = document.getElementById('lightboxModal');
+    if (modal) {
+        modal.style.display = 'none';
     }
 }
 
@@ -646,6 +704,13 @@ function limpiarFormulario() {
 
 <div class="app-header">
     <h1>Sindicato Juan Flores Vivas</h1>
+</div>
+
+<!-- VISOR PANTALLA COMPLETA -->
+<div id="lightboxModal" class="lightbox-modal" onclick="cerrarFotoModal()">
+    <span class="lightbox-close" onclick="cerrarFotoModal()">&times;</span>
+    <img id="lightboxImg" src="" alt="Foto Ampliada" onclick="event.stopPropagation()">
+    <div id="lightboxCaption" class="lightbox-caption"></div>
 </div>
 
 <!-- PESTAÑA INICIO / NOTICIAS -->
@@ -920,21 +985,24 @@ async function descargarPDF() {
     }
 }
 
-// Control del botón 'Atrás' en la app
-(function prepararSalida() {
-    history.pushState(null, document.title, location.href);
-    window.addEventListener('popstate', function () {
-        let salir = confirm("¿Deseas salir de la aplicación?");
-        if (salir) {
-            if (navigator.app && navigator.app.exitApp) {
-                navigator.app.exitApp();
-            } else {
-                history.back();
-            }
+// CONTROL SIMPLIFICADO Y ÚNICO DE SALIDA
+window.addEventListener('popstate', function () {
+    let salir = confirm("¿Deseas salir de la aplicación?");
+    if (salir) {
+        if (navigator.app && navigator.app.exitApp) {
+            navigator.app.exitApp();
+        } else if (navigator.device && navigator.device.exitApp) {
+            navigator.device.exitApp();
         } else {
-            history.pushState(null, document.title, location.href);
+            history.back();
         }
-    });
+    } else {
+        history.pushState(null, document.title, location.href);
+    }
+});
+
+(function fijarSalida() {
+    history.pushState(null, document.title, location.href);
 })();
 
 if ('serviceWorker' in navigator) {
