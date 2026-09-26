@@ -24,7 +24,6 @@
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
 
 <style>
 * {
@@ -159,35 +158,6 @@ button:active {
     color: #777;
 }
 
-.media-container {
-    margin-top: 10px;
-    width: 100%;
-    border-radius: 8px;
-    overflow: hidden;
-}
-
-.media-container img, .media-container video {
-    width: 100%;
-    max-height: 400px;
-    object-fit: cover;
-    border-radius: 8px;
-}
-
-.grid-gallery {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    gap: 10px;
-    margin-top: 10px;
-}
-
-.grid-gallery img, .grid-gallery video {
-    width: 100%;
-    height: 140px;
-    object-fit: cover;
-    border-radius: 8px;
-    border: 1px solid #ddd;
-}
-
 .admin-only {
     display: none;
 }
@@ -240,22 +210,6 @@ iframe {
     border: none;
     border-radius: 8px;
 }
-
-.progress-bar {
-    display: none;
-    width: 100%;
-    background-color: #e0e0e0;
-    border-radius: 8px;
-    margin-bottom: 12px;
-    overflow: hidden;
-}
-
-.progress-fill {
-    width: 0%;
-    height: 10px;
-    background-color: #28a745;
-    transition: width 0.3s;
-}
 </style>
 
 <script>
@@ -272,7 +226,6 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
-const storage = firebase.storage();
 
 let noticiaEditandoId = null; 
 let esAdmin = false; 
@@ -330,136 +283,96 @@ function logoutAdmin() {
     });
 }
 
-// Función principal para publicar/editar noticia conectada con Firebase Storage
-async function publicar() {
+function publicar() {
     let txtTitulo = document.getElementById('titulo').value;
     let txtDescripcion = document.getElementById('descripcion').value;
     let txtFecha = document.getElementById('fecha').value;
-    let fileMedia = document.getElementById('foto').files[0];
-    let btnPublicar = document.getElementById('btnPublicar');
+    let fileFoto = document.getElementById('foto').files[0];
 
     if (!txtTitulo && !txtDescripcion) {
         alert("Por favor escribe un título o descripción.");
         return;
     }
 
-    btnPublicar.disabled = true;
-    
-    if (fileMedia) {
-        mostrarProgreso(0);
-        try {
-            // Subida directa a Firebase Storage
-            const esVideo = fileMedia.type.startsWith('video');
-            const rutaCarpeta = esVideo ? 'videos' : 'fotos';
-            const nombreArchivo = `${Date.now()}_${fileMedia.name}`;
-            const storageRef = storage.ref(`${rutaCarpeta}/${nombreArchivo}`);
-
-            const uploadTask = storageRef.put(fileMedia);
-
-            uploadTask.on('state_changed', 
-                (snapshot) => {
-                    let progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                    mostrarProgreso(progress);
-                }, 
-                (error) => {
-                    alert("Error al subir archivo a Storage: " + error.message);
-                    btnPublicar.disabled = false;
-                    ocultarProgreso();
-                }, 
-                async () => {
-                    const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
-                    const tipoMedia = esVideo ? 'video' : 'imagen';
-                    guardarEnFirestore(txtTitulo, txtDescripcion, txtFecha, downloadURL, tipoMedia);
-                }
-            );
-        } catch (err) {
-            alert("Error: " + err.message);
-            btnPublicar.disabled = false;
-            ocultarProgreso();
-        }
+    if (fileFoto) {
+        let r = new FileReader();
+        r.onload = function(e) {
+            let imgData = e.target.result;
+            // Redimensionar imagen para evitar sobrepasar límites de datos
+            comprimirImagen(imgData, 800, 0.7, function(imgComprimida) {
+                guardarEnFirestore(txtTitulo, txtDescripcion, txtFecha, imgComprimida);
+            });
+        };
+        r.readAsDataURL(fileFoto);
     } else {
         if (noticiaEditandoId) {
             db.collection('Noticias').doc(noticiaEditandoId).get().then(doc => {
-                let mediaExistente = doc.exists ? (doc.data().imagen || doc.data().mediaUrl || '') : '';
-                let tipoExistente = doc.exists ? (doc.data().tipoMedia || 'imagen') : 'imagen';
-                guardarEnFirestore(txtTitulo, txtDescripcion, txtFecha, mediaExistente, tipoExistente);
+                let imgExistente = doc.exists ? (doc.data().imagen || '') : '';
+                guardarEnFirestore(txtTitulo, txtDescripcion, txtFecha, imgExistente);
             });
         } else {
-            guardarEnFirestore(txtTitulo, txtDescripcion, txtFecha, '', 'ninguno');
+            guardarEnFirestore(txtTitulo, txtDescripcion, txtFecha, '');
         }
     }
 }
 
-function mostrarProgreso(porcentaje) {
-    let pContainer = document.getElementById('progressContainer');
-    let pFill = document.getElementById('progressFill');
-    if (pContainer && pFill) {
-        pContainer.style.display = 'block';
-        pFill.style.width = porcentaje + '%';
-    }
+function comprimirImagen(base64Str, maxAncho, calidad, callback) {
+    let img = new Image();
+    img.src = base64Str;
+    img.onload = function() {
+        let canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxAncho) {
+            height = Math.round((height * maxAncho) / width);
+            width = maxAncho;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        let ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        callback(canvas.toDataURL('image/jpeg', calidad));
+    };
+    img.onerror = function() {
+        callback(base64Str);
+    };
 }
 
-function ocultarProgreso() {
-    let pContainer = document.getElementById('progressContainer');
-    let pFill = document.getElementById('progressFill');
-    if (pContainer && pFill) {
-        pContainer.style.display = 'none';
-        pFill.style.width = '0%';
-    }
-}
-
-function guardarEnFirestore(t, d, f, mediaUrl, tipoMedia) {
+function guardarEnFirestore(t, d, f, img) {
     let datosNoticia = {
         titulo: t,
         descripcion: d,
         fecha: f,
-        mediaUrl: mediaUrl,
-        imagen: mediaUrl, // Compatibilidad con registros antiguos
-        tipoMedia: tipoMedia,
+        imagen: img,
         timestamp: firebase.firestore.FieldValue.serverTimestamp()
     };
-
-    let btnPublicar = document.getElementById('btnPublicar');
 
     if (noticiaEditandoId) {
         db.collection('Noticias').doc(noticiaEditandoId).update(datosNoticia)
         .then(() => {
             limpiarFormulario();
             alert("¡Noticia actualizada!");
-        }).catch(err => alert("Error al actualizar: " + err.message))
-        .finally(() => {
-            btnPublicar.disabled = false;
-            ocultarProgreso();
-        });
+        }).catch(err => alert("Error al actualizar: " + err.message));
     } else {
         db.collection('Noticias').add(datosNoticia)
         .then(() => {
             limpiarFormulario();
-            alert("¡Noticia publicada exitosamente!");
-        }).catch(err => alert("Error al publicar: " + err.message))
-        .finally(() => {
-            btnPublicar.disabled = false;
-            ocultarProgreso();
-        });
+            alert("¡Noticia publicada!");
+        }).catch(err => alert("Error al publicar: " + err.message));
     }
 }
 
 function cargarNoticiasFirestore() {
     db.collection('Noticias').orderBy('timestamp', 'desc').onSnapshot(snapshot => {
         let c = document.getElementById('lista');
-        let galeriaFotosContainer = document.getElementById('galeriaFotosGrid');
-        let galeriaVideosContainer = document.getElementById('galeriaVideosGrid');
-
         if (!c) return;
         c.innerHTML = ''; 
-        if (galeriaFotosContainer) galeriaFotosContainer.innerHTML = '';
-        if (galeriaVideosContainer) galeriaVideosContainer.innerHTML = '';
         
         snapshot.forEach(doc => {
             let id = doc.id;
             let data = doc.data();
-            let urlArchivo = data.mediaUrl || data.imagen || '';
-            let tipo = data.tipoMedia || (urlArchivo.includes('video') ? 'video' : 'imagen');
             
             let n = document.createElement('div');
             n.className = 'news-card';
@@ -468,31 +381,8 @@ function cargarNoticiasFirestore() {
                                <small><i class="fa-regular fa-calendar"></i> ${escapeHtml(data.fecha || '')}</small>
                                <p style="white-space: pre-wrap;">${escapeHtml(data.descripcion || '')}</p>`;
             
-            if (urlArchivo) {
-                htmlContent += `<div class="media-container">`;
-                if (tipo === 'video') {
-                    htmlContent += `<video controls src="${urlArchivo}"></video>`;
-                    
-                    // Alimentar pestaña de Videos dinámicamente
-                    if (galeriaVideosContainer) {
-                        galeriaVideosContainer.innerHTML += `
-                            <div style="background:#fff; padding:8px; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
-                                <video controls src="${urlArchivo}" style="width:100%; border-radius:6px;"></video>
-                                <p style="font-size:0.85rem; margin:5px 0 0 0; font-weight:bold; color:#003366;">${escapeHtml(data.titulo || 'Video')}</p>
-                            </div>`;
-                    }
-                } else {
-                    htmlContent += `<img src="${urlArchivo}" alt="Imagen publicación">`;
-                    
-                    // Alimentar pestaña de Galería dinámicamente
-                    if (galeriaFotosContainer) {
-                        galeriaFotosContainer.innerHTML += `
-                            <a href="${urlArchivo}" target="_blank">
-                                <img src="${urlArchivo}" alt="Foto Sindicato" style="width:100%; height:120px; object-fit:cover; border-radius:8px;">
-                            </a>`;
-                    }
-                }
-                htmlContent += `</div>`;
+            if (data.imagen) {
+                htmlContent += `<img id="img_${id}" src="${data.imagen}" style="max-width:100%; border-radius:8px; margin-top:8px;">`;
             }
 
             if (esAdmin) {
@@ -544,7 +434,6 @@ function limpiarFormulario() {
     document.getElementById('foto').value = '';
     document.getElementById('fecha').value = new Date().toISOString().slice(0, 10);
     document.getElementById('btnPublicar').innerText = "Publicar noticia";
-    ocultarProgreso();
 }
 </script>
 </head>
@@ -573,14 +462,7 @@ function limpiarFormulario() {
             <input id="titulo" placeholder="Título de la noticia">
             <input id="fecha" type="date">
             <textarea id="descripcion" style="height:90px" placeholder="Escribe el contenido aquí..."></textarea>
-            
-            <label style="font-size:0.85rem; font-weight:bold; color:#555;">Adjuntar Foto o Video:</label>
-            <input id="foto" type="file" accept="image/*,video/*">
-            
-            <div id="progressContainer" class="progress-bar">
-                <div id="progressFill" class="progress-fill"></div>
-            </div>
-
+            <input id="foto" type="file" accept="image/*">
             <button id="btnPublicar" onclick="publicar()" style="background: #28a745;">Publicar noticia</button>
         </div>
         
@@ -611,16 +493,14 @@ function limpiarFormulario() {
 <div id="gal" class="tab">
     <div class="card-section">
         <h2><i class="fa-solid fa-images"></i> Galería de Fotos</h2>
-        <!-- Galería rápida directo desde Firebase Storage -->
-        <div id="galeriaFotosGrid" class="grid-gallery"></div>
+        <iframe src="https://docs.google.com/spreadsheets/d/1RLkiCHt-R_CjBlUgBM4YS_grRo8Wp5Rl/preview" width="100%" height="550"></iframe>
     </div>
 </div>
 
 <div id="vid" class="tab">
     <div class="card-section">
         <h2><i class="fa-solid fa-video"></i> Videos</h2>
-        <!-- Galería de videos directo desde Firebase Storage -->
-        <div id="galeriaVideosGrid" style="display:flex; flex-direction:column; gap:15px; margin-top:10px;"></div>
+        <iframe src="https://docs.google.com/spreadsheets/d/1e6x93z5jkCPXMkNWPR_juLbabQXbpEot/preview" width="100%" height="550"></iframe>
     </div>
 </div>
 
