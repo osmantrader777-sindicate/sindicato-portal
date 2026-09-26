@@ -13,14 +13,14 @@
 <!-- Iconos de FontAwesome -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-<!-- Chart.js -->
+<!-- Chart.js (Motor de gráficas compatible con WebView y offline) -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <!-- Exportación de PDF -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
-<!-- Firebase SDKs (Compat v10) -->
+<!-- Firebase SDKs (Compat) -->
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
@@ -213,7 +213,7 @@ iframe {
 </style>
 
 <script>
-// Configuración de Firebase
+// Firebase Config
 const firebaseConfig = {
   apiKey: "AIzaSyBXrIndvikCMg47NfN6NzmB3lYpui2AfWQ",
   authDomain: "noticias-sindicato-cips.firebaseapp.com",
@@ -288,21 +288,46 @@ function publicar() {
     let txtDescripcion = document.getElementById('descripcion').value;
     let txtFecha = document.getElementById('fecha').value;
     let fileFoto = document.getElementById('foto').files[0];
-    let btnPub = document.getElementById('btnPublicar');
 
     if (!txtTitulo && !txtDescripcion) {
         alert("Por favor escribe un título o descripción.");
         return;
     }
 
-    btnPub.innerText = "Procesando...";
-    btnPub.disabled = true;
-
     if (fileFoto) {
-        // Comprimir fuertemente la imagen para evitar el error de "margen insuficiente"
-        comprimirYReducirImagen(fileFoto, 600, 0.5, function(imgReducida) {
-            guardarEnFirestore(txtTitulo, txtDescripcion, txtFecha, imgReducida);
-        });
+        let r = new FileReader();
+        r.onload = function(e) {
+            // Ajustar automáticamente el tamaño de la foto antes de enviarla
+            let img = new Image();
+            img.src = e.target.result;
+            img.onload = function() {
+                let canvas = document.createElement('canvas');
+                let maxDimension = 800;
+                let width = img.width;
+                let height = img.height;
+
+                if (width > height) {
+                    if (width > maxDimension) {
+                        height *= maxDimension / width;
+                        width = maxDimension;
+                    }
+                } else {
+                    if (height > maxDimension) {
+                        width *= maxDimension / height;
+                        height = maxDimension;
+                    }
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                let ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                
+                let imagenAjustada = canvas.toDataURL('image/jpeg', 0.7);
+                guardarEnFirestore(txtTitulo, txtDescripcion, txtFecha, imagenAjustada);
+            };
+        };
+        r.readAsDataURL(fileFoto);
     } else {
         if (noticiaEditandoId) {
             db.collection('Noticias').doc(noticiaEditandoId).get().then(doc => {
@@ -315,36 +340,6 @@ function publicar() {
     }
 }
 
-function comprimirYReducirImagen(file, maxAncho, calidad, callback) {
-    let reader = new FileReader();
-    reader.onload = function(e) {
-        let img = new Image();
-        img.src = e.target.result;
-        img.onload = function() {
-            let canvas = document.createElement('canvas');
-            let width = img.width;
-            let height = img.height;
-
-            if (width > maxAncho) {
-                height = Math.round((height * maxAncho) / width);
-                width = maxAncho;
-            }
-
-            canvas.width = width;
-            canvas.height = height;
-            let ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, width, height);
-            
-            // Retorna imagen reducida en JPEG optimizado
-            callback(canvas.toDataURL('image/jpeg', calidad));
-        };
-        img.onerror = function() {
-            callback('');
-        };
-    };
-    reader.readAsDataURL(file);
-}
-
 function guardarEnFirestore(t, d, f, img) {
     let datosNoticia = {
         titulo: t,
@@ -354,30 +349,18 @@ function guardarEnFirestore(t, d, f, img) {
         timestamp: firebase.firestore.FieldValue.serverTimestamp()
     };
 
-    let btnPub = document.getElementById('btnPublicar');
-
     if (noticiaEditandoId) {
         db.collection('Noticias').doc(noticiaEditandoId).update(datosNoticia)
         .then(() => {
             limpiarFormulario();
-            alert("¡Noticia actualizada con éxito!");
-        })
-        .catch(err => alert("Error al actualizar: " + err.message))
-        .finally(() => {
-            btnPub.innerText = "Publicar noticia";
-            btnPub.disabled = false;
-        });
+            alert("¡Noticia actualizada!");
+        }).catch(err => alert("Error al actualizar: " + err.message));
     } else {
         db.collection('Noticias').add(datosNoticia)
         .then(() => {
             limpiarFormulario();
-            alert("¡Noticia publicada con éxito!");
-        })
-        .catch(err => alert("Error al publicar: " + err.message))
-        .finally(() => {
-            btnPub.innerText = "Publicar noticia";
-            btnPub.disabled = false;
-        });
+            alert("¡Noticia publicada!");
+        }).catch(err => alert("Error al publicar: " + err.message));
     }
 }
 
