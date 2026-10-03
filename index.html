@@ -814,7 +814,6 @@ function iniciarFinanzas() {
     let mesSelector = document.getElementById('mesSelector');
     if (!mesSelector) return;
 
-    // Generar meses dinámicos de ejemplo o conexión al CSV del Drive
     const meses = [
         { valor: '2026-10', texto: 'Octubre 2026' },
         { valor: '2026-09', texto: 'Septiembre 2026' },
@@ -835,7 +834,6 @@ function iniciarFinanzas() {
 }
 
 function actualizarDatosFinancieros() {
-    // Datos simulados dinámicos para los bloques y la gráfica
     let ingresos = 45000.00;
     let egresos = 28500.00;
     let diferencia = ingresos - egresos;
@@ -1017,95 +1015,13 @@ function limpiarFormulario() {
     </div>
 </div>
 
-<!-- PESTAÑA FINANZAS (Google Drive Excel) -->
+<!-- PESTAÑA FINANZAS -->
 <div id="docs" class="tab">
     <div class="card-section" id="reportePDF">
         <h2><i class="fa-solid fa-chart-line"></i> Reporte Financiero</h2>
         <select id="mesSelector"></select>
-        <button onclick="descargarPDF()" style="margin-bottom:10px;"><i class="fa-solid fa-file-pdf"></i> Descargar Reporte PDF</button>
-        <div class="summary">
-            <div class="card-finance"><h3>Ingresos</h3><p id="ingresos">C$ 0.00</p></div>
-            <div class="card-finance"><h3>Egresos</h3><p id="egresos">C$ 0.00</p></div>
-            <div class="card-finance"><h3>Diferencia</h3><p id="diferencia">C$ 0.00</p></div>
-        </div>
-        <div class="chart-wrapper">
-            <canvas id="financeChart"></canvas>
-        </div>
+        <button onclick="descargarPDF()" style="margin-top:10px;">Descargar PDF</button>
     </div>
-    <div class="card-section">
-        <h3>Archivo completo</h3>
-        <iframe src="https://docs.google.com/spreadsheets/d/1g8g4YVEk1mZ8IF86sLmqfoXYBDQjsTHe/preview" width="100%" height="400"></iframe>
-    </div>
-</div>
-
-<!-- PESTAÑA GALERÍA DE FOTOS -->
-<div id="gal" class="tab">
-    <div class="card-section">
-        <h2><i class="fa-solid fa-images"></i> Galería de Fotos</h2>
-
-        <div class="admin-only" style="background: #e6f2ff; padding: 12px; border-radius: 8px; border: 1px dashed #003366; margin-bottom: 15px;">
-            <h4 style="color: #003366; margin-top: 0;">Subir Foto a la Galería</h4>
-            
-            <!-- Indicador de Almacenamiento -->
-            <div class="storage-meter">
-                <span class="storage-text">Calculando almacenamiento...</span>
-                <div class="storage-bar-bg"><div class="storage-bar-fill"></div></div>
-            </div>
-
-            <input id="galeriaTitulo" placeholder="Descripción / Título de la foto">
-            
-            <!-- INPUT CON SELECCIÓN MÚLTIPLE Y COMPRESIÓN -->
-            <label style="font-size: 0.85rem; color: #666; display: block; margin-bottom: 5px;">Selecciona una o varias fotos:</label>
-            <input id="galeriaInputFoto" type="file" accept="image/*" multiple>
-
-            <button onclick="subirFotoGaleria()" style="background: #003366;">Subir Foto(s)</button>
-        </div>
-
-        <div id="galeriaFotosGrid" class="gallery-grid"></div>
-
-        <div style="margin-top:20px; border-top:1px solid #ddd; padding-top:15px;">
-            <button onclick="toggleDrive('driveFotos')" style="background:#6c757d; font-size:0.85rem;"><i class="fa-brands fa-google-drive"></i> Ver Archivo Histórico de Fotos (Drive)</button>
-            <div id="driveFotos" style="display:none; margin-top:10px;">
-                <iframe src="https://docs.google.com/spreadsheets/d/1RLkiCHt-R_CjBlUgBM4YS_grRo8Wp5Rl/preview" width="100%" height="450"></iframe>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- PESTAÑA VIDEOS -->
-<div id="vid" class="tab">
-    <div class="card-section">
-        <h2><i class="fa-solid fa-video"></i> Videos</h2>
-
-        <div class="admin-only" style="background: #e6f2ff; padding: 12px; border-radius: 8px; border: 1px dashed #003366; margin-bottom: 15px;">
-            <h4 style="color: #003366; margin-top: 0;">Agregar Video Informativo</h4>
-            <input id="videoTitulo" placeholder="Título del video">
-            <input id="videoUrlInput" placeholder="Enlace de YouTube o MP4">
-            <button onclick="subirVideoGaleria()" style="background: #003366;">Guardar Video</button>
-        </div>
-
-        <div id="galeriaVideosList" class="video-list"></div>
-    </div>
-</div>
-
-<!-- BARRA DE NAVEGACIÓN INFERIOR -->
-<div class="bottom-nav">
-    <a class="nav-item active" onclick="showTab('news', this)">
-        <i class="fa-solid fa-newspaper"></i>
-        <span>Noticias</span>
-    </a>
-    <a class="nav-item" onclick="showTab('docs', this)">
-        <i class="fa-solid fa-file-invoice-dollar"></i>
-        <span>Finanzas</span>
-    </a>
-    <a class="nav-item" onclick="showTab('gal', this)">
-        <i class="fa-solid fa-images"></i>
-        <span>Galería</span>
-    </a>
-    <a class="nav-item" onclick="showTab('vid', this)">
-        <i class="fa-solid fa-video"></i>
-        <span>Videos</span>
-    </a>
 </div>
 
 </body>
