@@ -78,6 +78,42 @@ body {
     color: #003366;
 }
 
+.summary {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 15px;
+}
+
+.card-finance {
+    flex: 1;
+    min-width: 100px;
+    background: #e6f0ff;
+    padding: 12px;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.card-finance h3 {
+    font-size: 0.85rem;
+    margin: 0 0 5px 0;
+    color: #555;
+}
+
+.card-finance p {
+    font-size: 1rem;
+    font-weight: bold;
+    margin: 0;
+    color: #003366;
+}
+
+.chart-wrapper {
+    position: relative;
+    height: 260px;
+    width: 100%;
+    margin-top: 15px;
+}
+
 select, input, textarea {
     width: 100%;
     padding: 12px;
@@ -214,6 +250,41 @@ button:active {
 .lightbox-prev { left: 10px; }
 .lightbox-next { right: 10px; }
 
+/* Lista de Videos */
+.video-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.video-card {
+    background: #fff;
+    border-radius: 10px;
+    padding: 12px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    border: 1px solid #e1e4e8;
+}
+
+.video-container {
+    position: relative;
+    width: 100%;
+    padding-bottom: 56.25%; /* Proporción 16:9 */
+    height: 0;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #000;
+}
+
+.video-container iframe, .video-container video {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+
 .admin-only {
     display: none;
 }
@@ -225,9 +296,51 @@ button:active {
     margin-bottom: 15px;
 }
 
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background: #ffffff;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+    z-index: 1000;
+}
+
+.nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #666;
+    text-decoration: none;
+    font-size: 0.75rem;
+    width: 25%;
+    height: 100%;
+    cursor: pointer;
+}
+
+.nav-item i {
+    font-size: 1.2rem;
+    margin-bottom: 3px;
+}
+
+.nav-item.active {
+    color: #003366;
+    font-weight: bold;
+}
+
+iframe {
+    border: none;
+    border-radius: 8px;
+}
+
 /* Indicador de Almacenamiento */
 .storage-meter {
-    background: #f8f9fa;
+    background: #ffffff;
     border: 1px solid #dee2e6;
     border-radius: 8px;
     padding: 10px 12px;
@@ -287,6 +400,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     cargarNoticiasFirestore();
     cargarGaleriaFotos();
+    cargarGaleriaVideos();
     calcularEspacioUsado();
 
     auth.onAuthStateChanged(user => {
@@ -304,6 +418,7 @@ window.addEventListener('DOMContentLoaded', () => {
         }
         cargarNoticiasFirestore();
         cargarGaleriaFotos();
+        cargarGaleriaVideos();
     });
 
     iniciarFinanzas();
@@ -351,7 +466,7 @@ async function calcularEspacioUsado() {
             }
         });
 
-        const limiteBytes = 1 * 1024 * 1024 * 1024; // 1 GB Límite Gratuito
+        const limiteBytes = 1 * 1024 * 1024 * 1024; // 1 GB
         let porcentaje = (totalBytes / limiteBytes) * 100;
         if (porcentaje > 100) porcentaje = 100;
 
@@ -375,9 +490,9 @@ async function calcularEspacioUsado() {
     }
 }
 
-// ---------------- ELIMINACIÓN AUTOMÁTICA DE FOTOS VIEJAS (>6 MESES) ----------------
+// ---------------- LIMPIEZA AUTOMÁTICA DE FOTOS VIEJAS (>6 MESES) ----------------
 async function limpiarFotosAntiguas() {
-    const confirmacion = confirm("¿Deseas buscar y borrar automáticamente todas las publicaciones e imágenes de la galería con más de 6 meses de antigüedad?");
+    const confirmacion = confirm("¿Deseas buscar y borrar automáticamente todas las publicaciones e imágenes de más de 6 meses de antigüedad?");
     if (!confirmacion) return;
 
     let ahora = new Date();
@@ -417,48 +532,35 @@ async function limpiarFotosAntiguas() {
     }
 }
 
-// ---------------- PUBLICACIÓN DE NOTICIAS ----------------
+// ---------------- NOTICIAS ----------------
 function publicar() {
     let txtTitulo = document.getElementById('titulo').value;
     let txtDescripcion = document.getElementById('descripcion').value;
     let txtFecha = document.getElementById('fecha').value;
-    let fileInput = document.getElementById('foto');
-    let archivos = fileInput.files;
+    let fileFoto = document.getElementById('foto').files[0];
 
     if (!txtTitulo && !txtDescripcion) {
         alert("Por favor escribe un título o descripción.");
         return;
     }
 
-    if (archivos && archivos.length > 0) {
-        let index = 0;
-        function procesarSiguiente() {
-            if (index < archivos.length) {
-                comprimirImagen(archivos[index], 1000, 0.7, function(imgComprimida) {
-                    let tituloActual = archivos.length > 1 ? `${txtTitulo} (${index + 1})` : txtTitulo;
-                    guardarEnFirestore(tituloActual, txtDescripcion, txtFecha, imgComprimida, index === 0 && noticiaEditandoId ? noticiaEditandoId : null);
-                    index++;
-                    procesarSiguiente();
-                });
-            } else {
-                limpiarFormulario();
-                alert("¡Noticia(s) publicada(s) con éxito!");
-            }
-        }
-        procesarSiguiente();
+    if (fileFoto) {
+        comprimirImagen(fileFoto, 1000, 0.7, function(imgComprimida) {
+            guardarEnFirestore(txtTitulo, txtDescripcion, txtFecha, imgComprimida);
+        });
     } else {
         if (noticiaEditandoId) {
             db.collection('Noticias').doc(noticiaEditandoId).get().then(doc => {
                 let imgExistente = doc.exists ? (doc.data().imagen || '') : '';
-                guardarEnFirestore(txtTitulo, txtDescripcion, txtFecha, imgExistente, noticiaEditandoId);
+                guardarEnFirestore(txtTitulo, txtDescripcion, txtFecha, imgExistente);
             });
         } else {
-            guardarEnFirestore(txtTitulo, txtDescripcion, txtFecha, '', null);
+            guardarEnFirestore(txtTitulo, txtDescripcion, txtFecha, '');
         }
     }
 }
 
-function guardarEnFirestore(t, d, f, img, docId) {
+function guardarEnFirestore(t, d, f, img) {
     let datosNoticia = {
         titulo: t,
         descripcion: d,
@@ -467,14 +569,18 @@ function guardarEnFirestore(t, d, f, img, docId) {
         timestamp: firebase.firestore.FieldValue.serverTimestamp()
     };
 
-    if (docId) {
-        db.collection('Noticias').doc(docId).update(datosNoticia).then(() => {
+    if (noticiaEditandoId) {
+        db.collection('Noticias').doc(noticiaEditandoId).update(datosNoticia)
+        .then(() => {
             limpiarFormulario();
             alert("¡Noticia actualizada!");
             calcularEspacioUsado();
         }).catch(err => alert("Error al actualizar: " + err.message));
     } else {
-        db.collection('Noticias').add(datosNoticia).then(() => {
+        db.collection('Noticias').add(datosNoticia)
+        .then(() => {
+            limpiarFormulario();
+            alert("¡Noticia publicada!");
             calcularEspacioUsado();
         }).catch(err => alert("Error al publicar: " + err.message));
     }
@@ -484,7 +590,7 @@ function cargarNoticiasFirestore() {
     db.collection('Noticias').orderBy('timestamp', 'desc').onSnapshot(snapshot => {
         let c = document.getElementById('lista');
         if (!c) return;
-        c.innerHTML = ""; 
+        c.innerHTML = ''; 
         
         snapshot.forEach(doc => {
             let id = doc.id;
@@ -524,9 +630,9 @@ function cargarNoticiasFirestore() {
     }, error => console.error("Error datos: ", error.message));
 }
 
-// ---------------- SUBIDA MASIVA A GALERÍA DE CUALQUIER ACTIVIDAD ----------------
+// ---------------- GALERÍA DE FOTOS (SUBIDA MASIVA Y TÍTULOS AUTOMÁTICOS) ----------------
 function subirFotoGaleria() {
-    let tituloActividad = document.getElementById('galeriaTitulo').value.trim();
+    let tituloFoto = document.getElementById('galeriaTitulo').value.trim();
     let fileInput = document.getElementById('galeriaInputFoto');
     let archivos = fileInput.files;
 
@@ -535,7 +641,7 @@ function subirFotoGaleria() {
         return;
     }
 
-    let nombreBase = tituloActividad || 'Actividad Sindicato';
+    let nombreBase = tituloFoto || 'Actividad Sindicato';
     let index = 0;
 
     function subirSiguiente() {
@@ -574,7 +680,7 @@ function cargarGaleriaFotos() {
         galeriaFotosArray = [];
 
         if (snapshot.empty) {
-            grid.innerHTML = '<p style="color:#666; font-size:0.9rem; grid-column:1/-1;">Aún no hay fotos cargadas en la galería.</p>';
+            grid.innerHTML = '<p style="color:#666; font-size:0.9rem; grid-column:1/-1;">Aún no hay fotos cargadas en esta sección.</p>';
             return;
         }
 
@@ -585,14 +691,14 @@ function cargarGaleriaFotos() {
 
             galeriaFotosArray.push({
                 url: data.imagen,
-                titulo: data.titulo || 'Actividad Sindicato'
+                titulo: data.titulo || 'Foto Sindicato'
             });
 
             let currentIdx = idx;
             let card = document.createElement('div');
             card.className = 'gallery-card';
 
-            let html = `<img src="${data.imagen}" alt="Actividad Sindicato" onclick="abrirVisorGaleria(${currentIdx})">
+            let html = `<img src="${data.imagen}" alt="Foto Sindicato" onclick="abrirVisorGaleria(${currentIdx})">
                         <div class="info" onclick="abrirVisorGaleria(${currentIdx})">
                             ${escapeHtml(data.titulo || '')}
                         </div>`;
@@ -613,6 +719,88 @@ function eliminarFotoGaleria(id) {
         db.collection('GaleriaFotos').doc(id).delete().then(() => {
             calcularEspacioUsado();
         }).catch(err => alert("Error: " + err.message));
+    }
+}
+
+// ---------------- GALERÍA DE VIDEOS ----------------
+function subirVideoGaleria() {
+    let tituloVideo = document.getElementById('videoTitulo').value.trim();
+    let urlVideo = document.getElementById('videoUrlInput').value.trim();
+
+    if (!urlVideo) {
+        alert("Por favor ingresa el enlace del video (YouTube o MP4).");
+        return;
+    }
+
+    let embedUrl = urlVideo;
+    if (urlVideo.includes("youtube.com/watch?v=")) {
+        let videoId = urlVideo.split("v=")[1]?.split("&")[0];
+        if (videoId) embedUrl = `https://www.youtube.com/embed/${videoId}`;
+    } else if (urlVideo.includes("youtu.be/")) {
+        let videoId = urlVideo.split("youtu.be/")[1]?.split("?")[0];
+        if (videoId) embedUrl = `https://www.youtube.com/embed/${videoId}`;
+    }
+
+    db.collection('GaleriaVideos').add({
+        titulo: tituloVideo || 'Video Informativo',
+        url: embedUrl,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(() => {
+        document.getElementById('videoTitulo').value = '';
+        document.getElementById('videoUrlInput').value = '';
+        alert("¡Video guardado con éxito!");
+    }).catch(err => alert("Error al guardar video: " + err.message));
+}
+
+function cargarGaleriaVideos() {
+    db.collection('GaleriaVideos').orderBy('timestamp', 'desc').onSnapshot(snapshot => {
+        let container = document.getElementById('galeriaVideosList');
+        if (!container) return;
+        container.innerHTML = '';
+
+        if (snapshot.empty) {
+            container.innerHTML = '<p style="color:#666; font-size:0.9rem;">Aún no hay videos guardados en esta sección.</p>';
+            return;
+        }
+
+        snapshot.forEach(doc => {
+            let id = doc.id;
+            let data = doc.data();
+
+            let card = document.createElement('div');
+            card.className = 'video-card';
+
+            let html = `<h4 style="margin:0 0 8px 0; color:#003366;">${escapeHtml(data.titulo || '')}</h4>`;
+            html += `<div class="video-container">`;
+
+            if (data.url.includes("youtube.com") || data.url.includes("embed")) {
+                html += `<iframe src="${data.url}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+            } else {
+                html += `<video controls src="${data.url}"></video>`;
+            }
+
+            html += `</div>`;
+
+            if (esAdmin) {
+                html += `<button style="background:#dc3545; padding:6px; margin-top:8px; font-size:0.8rem; border:none; border-radius:6px;" onclick="eliminarVideoGaleria('${id}')"><i class="fa-solid fa-trash"></i> Eliminar Video</button>`;
+            }
+
+            card.innerHTML = html;
+            container.appendChild(card);
+        });
+    });
+}
+
+function eliminarVideoGaleria(id) {
+    if (confirm("¿Deseas eliminar este video?")) {
+        db.collection('GaleriaVideos').doc(id).delete().catch(err => alert("Error: " + err.message));
+    }
+}
+
+function toggleDrive(id) {
+    let el = document.getElementById(id);
+    if (el) {
+        el.style.display = (el.style.display === 'none' || el.style.display === '') ? 'block' : 'none';
     }
 }
 
@@ -654,95 +842,7 @@ function cerrarFotoModal() {
     document.getElementById('lightboxModal').style.display = 'none';
 }
 
-// ---------------- MÓDULO DE FINANZAS Y REPORTES PDF ----------------
-function iniciarFinanzas() {
-    let mesSelector = document.getElementById('mesSelector');
-    if (!mesSelector) return;
-
-    const meses = [
-        { valor: '2026-10', texto: 'Octubre 2026' },
-        { valor: '2026-09', texto: 'Septiembre 2026' },
-        { valor: '2026-08', texto: 'Agosto 2026' },
-        { valor: '2026-07', texto: 'Julio 2026' }
-    ];
-
-    mesSelector.innerHTML = '';
-    meses.forEach(m => {
-        let opt = document.createElement('option');
-        opt.value = m.valor;
-        opt.innerText = m.texto;
-        mesSelector.appendChild(opt);
-    });
-
-    mesSelector.addEventListener('change', actualizarDatosFinancieros);
-    actualizarDatosFinancieros();
-}
-
-function actualizarDatosFinancieros() {
-    let ingresos = 45000.00;
-    let egresos = 28500.00;
-    let diferencia = ingresos - egresos;
-
-    document.getElementById('ingresos').innerText = `C$ ${ingresos.toLocaleString('es-NI', {minimumFractionDigits: 2})}`;
-    document.getElementById('egresos').innerText = `C$ ${egresos.toLocaleString('es-NI', {minimumFractionDigits: 2})}`;
-    document.getElementById('diferencia').innerText = `C$ ${diferencia.toLocaleString('es-NI', {minimumFractionDigits: 2})}`;
-
-    renderizarGraficaFinanciera(ingresos, egresos);
-}
-
-let financeChartInstance = null;
-function renderizarGraficaFinanciera(ingresos, egresos) {
-    const ctx = document.getElementById('financeChart');
-    if (!ctx) return;
-
-    if (financeChartInstance) {
-        financeChartInstance.destroy();
-    }
-
-    financeChartInstance = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: ['Ingresos', 'Egresos', 'Balance'],
-            datasets: [{
-                label: 'Córdobas (C$)',
-                data: [ingresos, egresos, ingresos - egresos],
-                backgroundColor: ['#28a745', '#dc3545', '#003366'],
-                borderRadius: 6
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false }
-            },
-            scales: {
-                y: { beginAtZero: true }
-            }
-        }
-    });
-}
-
-async function descargarPDF() {
-    const { jsPDF } = window.jspdf;
-    let elementoReporte = document.getElementById('reportePDF');
-    
-    try {
-        let canvas = await html2canvas(elementoReporte, { scale: 2 });
-        let imgData = canvas.toDataURL('image/png');
-        
-        let pdf = new jsPDF('p', 'mm', 'a4');
-        let pageWidth = pdf.internal.pageSize.getWidth();
-        let pageHeight = (canvas.height * pageWidth) / canvas.width;
-        
-        pdf.addImage(imgData, 'PNG', 0, 10, pageWidth, pageHeight);
-        pdf.save('Reporte_Financiero_Sindicato.pdf');
-    } catch (e) {
-        alert("Error al generar el PDF: " + e.message);
-    }
-}
-
-// ---------------- CONVERTIDOR Y COMPRESOR DE IMÁGENES ----------------
+// ---------------- UTILIDADES CONVERTIDOR/COMPRESOR ----------------
 function comprimirImagen(file, maxDimension, calidad, callback) {
     let reader = new FileReader();
     reader.onload = function(e) {
@@ -822,10 +922,10 @@ function limpiarFormulario() {
     <div id="lightboxCaption" class="lightbox-caption"></div>
 </div>
 
-<!-- PESTAÑA PRINCIPAL: NOTICIAS Y GALERÍA -->
+<!-- PESTAÑA INICIO / NOTICIAS -->
 <div id="news" class="tab active">
     <div class="card-section">
-        <h2><i class="fa-regular fa-newspaper"></i> Noticias y Galería</h2>
+        <h2><i class="fa-regular fa-newspaper"></i> Noticias Recientes</h2>
         
         <div id="loginSection" class="login-container">
             <h4 style="margin-top:0;">Acceso Administrador</h4>
@@ -836,62 +936,266 @@ function limpiarFormulario() {
         
         <button id="logoutBtn" onclick="logoutAdmin()" style="display:none; background:#dc3545; margin-bottom:15px;">Cerrar Sesión Admin</button>
 
-        <!-- PANEL DE CONTROL ADMINISTRATIVO -->
         <div class="admin-only" style="background: #fff9e6; padding: 12px; border-radius: 8px; border: 1px dashed #ffc107; margin-bottom: 15px;">
-            <h4 style="color: #b98d00; margin-top: 0;">Panel de Control y Mantenimiento</h4>
+            <h4 style="color: #b98d00; margin-top: 0;">Panel de Publicación de Noticias</h4>
             
-            <!-- Indicador de Almacenamiento Consumido -->
+            <!-- Indicador de Almacenamiento -->
             <div class="storage-meter">
                 <span class="storage-text">Calculando almacenamiento...</span>
                 <div class="storage-bar-bg"><div class="storage-bar-fill"></div></div>
             </div>
 
-            <!-- Botón de Limpieza Automática de Fotos Viejas -->
             <button onclick="limpiarFotosAntiguas()" style="background:#d9534f; margin-bottom: 15px; font-size: 0.85rem;">
-                🧹 Borrar Fotos/Noticias de más de 6 Meses (Liberar Espacio)
+                🧹 Borrar Publicaciones/Fotos > 6 Meses
             </button>
 
-            <hr style="border: 0; border-top: 1px solid #ffe8a1; margin: 15px 0;">
-
-            <!-- SECCIÓN 1: PUBLICAR NOTICIA -->
-            <h4 style="color: #003366; margin-top: 0;"><i class="fa-regular fa-pen-to-square"></i> Publicar Noticia Informativa</h4>
             <input id="titulo" placeholder="Título de la noticia">
             <input id="fecha" type="date">
             <textarea id="descripcion" style="height:90px" placeholder="Escribe el contenido aquí..."></textarea>
-            
-            <label style="font-size: 0.85rem; color: #666; display: block; margin-bottom: 5px;">Selecciona foto(s) para la noticia:</label>
-            <input id="foto" type="file" accept="image/*" multiple>
-
-            <button id="btnPublicar" onclick="publicar()" style="background: #28a745; margin-bottom:15px;">Publicar noticia</button>
-
-            <hr style="border: 0; border-top: 1px solid #ffe8a1; margin: 15px 0;">
-
-            <!-- SECCIÓN 2: SUBIDA MASIVA A GALERÍA DE CUALQUIER ACTIVIDAD -->
-            <h4 style="color: #003366; margin-top: 0;"><i class="fa-solid fa-camera"></i> Subida Masiva a Galería de Actividades</h4>
-            <label style="font-size: 0.85rem; color: #555; display: block; margin-bottom: 4px;">Nombre de la actividad o evento (opcional):</label>
-            <input id="galeriaTitulo" placeholder="Ej. Convivio, Entrega de Uniformes, Capacitación...">
-            
-            <label style="font-size: 0.85rem; color: #555; display: block; margin-bottom: 4px;">Selecciona múltiples fotos desde tu celular:</label>
-            <input id="galeriaInputFoto" type="file" accept="image/*" multiple>
-            
-            <button onclick="subirFotoGaleria()" style="background: #003366;">🚀 Subir fotos a Galería</button>
+            <input id="foto" type="file" accept="image/*">
+            <button id="btnPublicar" onclick="publicar()" style="background: #28a745;">Publicar noticia</button>
         </div>
         
         <div id="lista"></div>
-
-        <h3 style="margin-top:25px; color:#003366;"><i class="fa-solid fa-images"></i> Galería de Fotos de Actividades</h3>
-        <div id="galeriaFotosGrid" class="gallery-grid"></div>
     </div>
 </div>
 
-<!-- PESTAÑA FINANZAS -->
+<!-- PESTAÑA FINANZAS (Google Drive Excel) -->
 <div id="docs" class="tab">
     <div class="card-section" id="reportePDF">
         <h2><i class="fa-solid fa-chart-line"></i> Reporte Financiero</h2>
         <select id="mesSelector"></select>
-        <button onclick="descargarPDF()" style="margin-top:10px;">Descargar PDF</button>
+        <button onclick="descargarPDF()" style="margin-bottom:10px;"><i class="fa-solid fa-file-pdf"></i> Descargar Reporte PDF</button>
+        <div class="summary">
+            <div class="card-finance"><h3>Ingresos</h3><p id="ingresos">C$ 0.00</p></div>
+            <div class="card-finance"><h3>Egresos</h3><p id="egresos">C$ 0.00</p></div>
+            <div class="card-finance"><h3>Diferencia</h3><p id="diferencia">C$ 0.00</p></div>
+        </div>
+        <div class="chart-wrapper">
+            <canvas id="financeChart"></canvas>
+        </div>
+    </div>
+    <div class="card-section">
+        <h3>Archivo completo</h3>
+        <iframe src="https://docs.google.com/spreadsheets/d/1g8g4YVEk1mZ8IF86sLmqfoXYBDQjsTHe/preview" width="100%" height="400"></iframe>
     </div>
 </div>
 
+<!-- PESTAÑA GALERÍA DE FOTOS -->
+<div id="gal" class="tab">
+    <div class="card-section">
+        <h2><i class="fa-solid fa-images"></i> Galería de Fotos</h2>
+
+        <div class="admin-only" style="background: #e6f2ff; padding: 12px; border-radius: 8px; border: 1px dashed #003366; margin-bottom: 15px;">
+            <h4 style="color: #003366; margin-top: 0;">Subir Foto(s) a la Galería</h4>
+            <input id="galeriaTitulo" placeholder="Descripción / Título del evento (opcional)">
+            <input id="galeriaInputFoto" type="file" accept="image/*" multiple>
+            <button onclick="subirFotoGaleria()" style="background: #003366;">🚀 Subir Fotos a Galería</button>
+        </div>
+
+        <div id="galeriaFotosGrid" class="gallery-grid"></div>
+
+        <div style="margin-top:20px; border-top:1px solid #ddd; padding-top:15px;">
+            <button onclick="toggleDrive('driveFotos')" style="background:#6c757d; font-size:0.85rem;"><i class="fa-brands fa-google-drive"></i> Ver Archivo Histórico de Fotos (Drive)</button>
+            <div id="driveFotos" style="display:none; margin-top:10px;">
+                <iframe src="https://docs.google.com/spreadsheets/d/1RLkiCHt-R_CjBlUgBM4YS_grRo8Wp5Rl/preview" width="100%" height="450"></iframe>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- PESTAÑA VIDEOS -->
+<div id="vid" class="tab">
+    <div class="card-section">
+        <h2><i class="fa-solid fa-video"></i> Videos</h2>
+
+        <div class="admin-only" style="background: #e6f2ff; padding: 12px; border-radius: 8px; border: 1px dashed #003366; margin-bottom: 15px;">
+            <h4 style="color: #003366; margin-top: 0;">Agregar Video Informativo</h4>
+            <input id="videoTitulo" placeholder="Título del Video">
+            <input id="videoUrlInput" placeholder="Enlace del video (YouTube o MP4)">
+            <button onclick="subirVideoGaleria()" style="background: #003366;">Guardar Video</button>
+        </div>
+
+        <div id="galeriaVideosList" class="video-list"></div>
+
+        <div style="margin-top:20px; border-top:1px solid #ddd; padding-top:15px;">
+            <button onclick="toggleDrive('driveVideos')" style="background:#6c757d; font-size:0.85rem;"><i class="fa-brands fa-google-drive"></i> Ver Archivo Histórico de Videos (Drive)</button>
+            <div id="driveVideos" style="display:none; margin-top:10px;">
+                <iframe src="https://docs.google.com/spreadsheets/d/1e6x93z5jkCPXMkNWPR_juLbabQXbpEot/preview" width="100%" height="450"></iframe>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- NAVEGACIÓN INFERIOR (TABBAR) -->
+<div class="bottom-nav">
+    <div class="nav-item active" onclick="showTab('news', this)">
+        <i class="fa-solid fa-newspaper"></i>
+        <span>Inicio</span>
+    </div>
+    <div class="nav-item" onclick="showTab('gal', this)">
+        <i class="fa-solid fa-images"></i>
+        <span>Galería</span>
+    </div>
+    <div class="nav-item" onclick="showTab('vid', this)">
+        <i class="fa-solid fa-video"></i>
+        <span>Videos</span>
+    </div>
+    <div class="nav-item" onclick="showTab('docs', this)">
+        <i class="fa-solid fa-chart-line"></i>
+        <span>Finanzas</span>
+    </div>
+</div>
+
+<script>
+// ---------------- LÓGICA DE FINANZAS DE GOOGLE SHEETS ----------------
+const SHEET_ID = "1g8g4YVEk1mZ8IF86sLmqfoXYBDQjsTHe";
+const meses = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+let chartInstance = null;
+
+function limpiarNumero(valor) {
+    if (typeof valor === "string") { valor = valor.replace(/[^\d.-]/g, ""); }
+    return parseFloat(valor) || 0;
+}
+
+async function fetchSheetData(sheetName) {
+    try {
+        const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?sheet=${encodeURIComponent(sheetName)}&tqx=out:json`;
+        const response = await fetch(url);
+        const text = await response.text();
+        const jsonString = text.substring(47, text.length - 2);
+        const data = JSON.parse(jsonString);
+        return data.table.rows;
+    } catch (e) {
+        console.error("Error obteniendo datos:", e);
+        return [];
+    }
+}
+
+function calcularPorMesRows(rows, mesIndex, year) {
+    let total = 0;
+    if (!rows) return total;
+    
+    rows.forEach(row => {
+        if (row.c && row.c[0] && row.c[3]) {
+            let rawFecha = row.c[0].v;
+            let monto = limpiarNumero(row.c[3].v);
+            
+            let fecha = null;
+            if (typeof rawFecha === "string" && rawFecha.startsWith("Date(")) {
+                let parts = rawFecha.match(/\d+/g);
+                if (parts) {
+                    fecha = new Date(parts[0], parts[1], parts[2]);
+                }
+            } else {
+                fecha = new Date(rawFecha);
+            }
+            
+            if (fecha && !isNaN(fecha.getTime())) {
+                if (fecha.getMonth() === mesIndex && fecha.getFullYear() === year) {
+                    total += monto;
+                }
+            }
+        }
+    });
+    return total;
+}
+
+function formatoCordobas(valor) {
+    return "C$ " + valor.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function iniciarFinanzas() {
+    let mesSelector = document.getElementById('mesSelector');
+    if (!mesSelector) return;
+
+    let fechaActual = new Date();
+    let anioActual = fechaActual.getFullYear();
+
+    mesSelector.innerHTML = '';
+    meses.forEach((m, idx) => {
+        let opt = document.createElement('option');
+        opt.value = idx;
+        opt.innerText = `${m} ${anioActual}`;
+        if (idx === fechaActual.getMonth()) opt.selected = true;
+        mesSelector.appendChild(opt);
+    });
+
+    mesSelector.addEventListener('change', () => {
+        cargarDatos(parseInt(mesSelector.value), anioActual);
+    });
+
+    cargarDatos(fechaActual.getMonth(), anioActual);
+}
+
+async function cargarDatos(mesIndex, year) {
+    const ingresosRows = await fetchSheetData("INGRESOS");
+    const egresosRows = await fetchSheetData("EGRESOS");
+
+    let ingresos = calcularPorMesRows(ingresosRows, mesIndex, year);
+    let egresos = calcularPorMesRows(egresosRows, mesIndex, year);
+    let diferencia = ingresos - egresos;
+
+    document.getElementById("ingresos").innerText = formatoCordobas(ingresos);
+    document.getElementById("egresos").innerText = formatoCordobas(egresos);
+    document.getElementById("diferencia").innerText = formatoCordobas(diferencia);
+
+    renderChart(ingresos, egresos, meses[mesIndex], year);
+}
+
+function renderChart(ingresos, egresos, mesNombre, year) {
+    const ctx = document.getElementById('financeChart').getContext('2d');
+    
+    if (chartInstance) {
+        chartInstance.destroy();
+    }
+
+    chartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['Ingresos', 'Egresos'],
+            datasets: [{
+                label: 'Monto C$',
+                data: [ingresos, egresos],
+                backgroundColor: ['#28a745', '#dc3545'],
+                borderRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                title: {
+                    display: true,
+                    text: `Reporte - ${mesNombre} ${year}`
+                }
+            },
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
+}
+
+async function descargarPDF() {
+    const { jsPDF } = window.jspdf;
+    let elementoReporte = document.getElementById('reportePDF');
+    
+    try {
+        let canvas = await html2canvas(elementoReporte, { scale: 2 });
+        let imgData = canvas.toDataURL('image/png');
+        
+        let pdf = new jsPDF('p', 'mm', 'a4');
+        let pageWidth = pdf.internal.pageSize.getWidth();
+        let pageHeight = (canvas.height * pageWidth) / canvas.width;
+        
+        pdf.addImage(imgData, 'PNG', 0, 10, pageWidth, pageHeight);
+        pdf.save(`Reporte_Financiero_Sindicato_${new Date().toISOString().slice(0,10)}.pdf`);
+    } catch (e) {
+        alert("Error al generar el PDF: " + e.message);
+    }
+}
+</script>
 </body>
 </html>
