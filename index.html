@@ -502,10 +502,20 @@ function loginAdmin() {
 }
 
 function logoutAdmin() {
-    auth.signOut().then(() => {
-        alert("Sesión cerrada.");
-        location.reload();
-    });
+    if (confirm("¿Estás seguro de que deseas salir de la aplicación?")) {
+        auth.signOut().then(() => {
+            if (navigator.app && typeof navigator.app.exitApp === 'function') {
+                navigator.app.exitApp();
+            } else if (window.opener) {
+                window.close();
+            } else {
+                window.location.href = "about:blank";
+                window.close();
+            }
+        }).catch(error => {
+            alert("Error al salir: " + error.message);
+        });
+    }
 }
 
 // ---------------- CÁLCULO DE ESPACIO DE ALMACENAMIENTO ----------------
@@ -1092,7 +1102,7 @@ function limpiarFormulario() {
             <button onclick="loginAdmin()" style="background:#28a745;">Iniciar Sesión</button>
         </div>
         
-        <button id="logoutBtn" onclick="logoutAdmin()" style="display:none; background:#dc3545; margin-bottom:15px;">Cerrar Sesión Admin</button>
+        <button id="logoutBtn" onclick="logoutAdmin()" style="display:none; background:#dc3545; margin-bottom:15px;">Cerrar Sesión / Salir</button>
 
         <div class="admin-only" style="background: #fff9e6; padding: 12px; border-radius: 8px; border: 1px dashed #ffc107; margin-bottom: 15px;">
             <h4 style="color: #b98d00; margin-top: 0;">Panel de Publicación de Noticias</h4>
@@ -1117,7 +1127,7 @@ function limpiarFormulario() {
     </div>
 </div>
 
-<!-- PESTAÑA FINANZAS (CON BLOQUEO ANTI-CONGELAMIENTO SEGURO) -->
+<!-- PESTAÑA FINANZAS -->
 <div id="docs" class="tab">
     <div class="card-section" id="reportePDF">
         <h2><i class="fa-solid fa-chart-line"></i> Reporte Financiero</h2>
@@ -1274,229 +1284,5 @@ function limpiarFormulario() {
         <span>Finanzas</span>
     </div>
 </div>
-
-<script>
-// ---------------- LÓGICA DE FINANZAS PROTEGIDA CONTRA CONGELAMIENTO ----------------
-const SHEET_ID = "1g8g4YVEk1mZ8IF86sLmqfoXYBDQjsTHe";
-const meses = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
-let chartInstance = null;
-
-function limpiarNumero(valor) {
-    if (typeof valor === "number") return valor;
-    if (typeof valor === "string") {
-        valor = valor.replace(/[^\d.-]/g, "");
-    }
-    return parseFloat(valor) || 0;
-}
-
-function parseFecha(rawFecha) {
-    if (!rawFecha) return null;
-    if (typeof rawFecha === "string" && rawFecha.startsWith("Date(")) {
-        let parts = rawFecha.match(/\d+/g);
-        if (parts) {
-            return new Date(parts[0], parts[1], parts[2]);
-        }
-    }
-    if (typeof rawFecha === "string" && rawFecha.includes("/")) {
-        let p = rawFecha.split("/");
-        if (p.length === 3) {
-            return new Date(p[2], p[1] - 1, p[0]);
-        }
-    }
-    let d = new Date(rawFecha);
-    return isNaN(d.getTime()) ? null : d;
-}
-
-async function fetchSheetData(sheetName) {
-    try {
-        const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?sheet=${encodeURIComponent(sheetName)}&tqx=out:json`;
-        const response = await fetch(url);
-        if (!response.ok) return [];
-        const text = await response.text();
-        if (text.length < 50) return [];
-        const jsonString = text.substring(47, text.length - 2);
-        const data = JSON.parse(jsonString);
-        return data.table.rows || [];
-    } catch (e) {
-        console.warn("Aviso de red en hoja " + sheetName + ":", e);
-        return [];
-    }
-}
-
-function calcularPorMesRows(rows, mesIndex, year) {
-    let total = 0;
-    if (!rows) return total;
-    
-    rows.forEach(row => {
-        if (row.c && row.c[0] && row.c[3]) {
-            let fecha = parseFecha(row.c[0].v);
-            let monto = limpiarNumero(row.c[3].v);
-            
-            if (fecha && fecha.getMonth() === mesIndex && fecha.getFullYear() === year) {
-                total += monto;
-            }
-        }
-    });
-    return total;
-}
-
-function calcularAcumuladoHastaMesAnterior(rows, mesIndex, year) {
-    let total = 0;
-    if (!rows) return total;
-
-    let fechaCorte = new Date(year, mesIndex, 1);
-
-    rows.forEach(row => {
-        if (row.c && row.c[0] && row.c[3]) {
-            let fecha = parseFecha(row.c[0].v);
-            let monto = limpiarNumero(row.c[3].v);
-
-            if (fecha && fecha < fechaCorte) {
-                total += monto;
-            }
-        }
-    });
-    return total;
-}
-
-function formatoCordobas(valor) {
-    return "C$ " + valor.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
-function iniciarFinanzas() {
-    let mesSelector = document.getElementById('mesSelector');
-    if (!mesSelector) return;
-
-    let fechaActual = new Date();
-    let anioActual = fechaActual.getFullYear();
-
-    mesSelector.innerHTML = '';
-    
-    let opciones = [
-        { mes: 10, anio: 2025, label: "Noviembre 2025" },
-        { mes: 11, anio: 2025, label: "Diciembre 2025" }
-    ];
-
-    meses.forEach((m, idx) => {
-        opciones.push({ mes: idx, anio: 2026, label: `${m} 2026` });
-    });
-
-    opciones.forEach(op => {
-        let opt = document.createElement('option');
-        opt.value = `${op.mes}-${op.anio}`;
-        opt.innerText = op.label;
-        if (op.mes === fechaActual.getMonth() && op.anio === anioActual) {
-            opt.selected = true;
-        }
-        mesSelector.appendChild(opt);
-    });
-
-    mesSelector.onchange = function() {
-        let parts = mesSelector.value.split('-');
-        cargarDatos(parseInt(parts[0]), parseInt(parts[1]));
-    };
-
-    let parts = mesSelector.value.split('-');
-    cargarDatos(parseInt(parts[0]), parseInt(parts[1]));
-}
-
-async function cargarDatos(mesIndex, year) {
-    try {
-        const ingresosRows = await fetchSheetData("INGRESOS");
-        const egresosRows = await fetchSheetData("EGRESOS");
-
-        let ingresosMes = calcularPorMesRows(ingresosRows, mesIndex, year);
-        let egresosMes = calcularPorMesRows(egresosRows, mesIndex, year);
-        let resultadoMes = ingresosMes - egresosMes;
-
-        let ingresosAnteriores = calcularAcumuladoHastaMesAnterior(ingresosRows, mesIndex, year);
-        let egresosAnteriores = calcularAcumuladoHastaMesAnterior(egresosRows, mesIndex, year);
-        let saldoInicialAcumulado = ingresosAnteriores - egresosAnteriores;
-
-        let saldoFinalAcumulado = saldoInicialAcumulado + resultadoMes;
-
-        // Tarjetas
-        document.getElementById("ingresos").innerText = formatoCordobas(ingresosMes);
-        document.getElementById("egresos").innerText = formatoCordobas(egresosMes);
-        
-        let elDiferencia = document.getElementById("diferencia");
-        elDiferencia.innerText = formatoCordobas(resultadoMes);
-        elDiferencia.className = resultadoMes >= 0 ? "text-positive" : "text-negative";
-
-        document.getElementById("saldoFinal").innerText = formatoCordobas(saldoFinalAcumulado);
-
-        // Tabla Contable
-        document.getElementById("tblSaldoInicial").innerText = formatoCordobas(saldoInicialAcumulado);
-        document.getElementById("tblIngresos").innerText = formatoCordobas(ingresosMes);
-        document.getElementById("tblEgresos").innerText = formatoCordobas(egresosMes);
-        
-        let elTblResultado = document.getElementById("tblResultadoMes");
-        elTblResultado.innerText = formatoCordobas(resultadoMes);
-        elTblResultado.className = "text-right " + (resultadoMes >= 0 ? "text-positive" : "text-negative");
-
-        document.getElementById("tblSaldoFinal").innerText = formatoCordobas(saldoFinalAcumulado);
-
-        renderChart(ingresosMes, egresosMes, meses[mesIndex], year);
-    } catch (err) {
-        console.error("Error al procesar datos financieros:", err);
-    }
-}
-
-function renderChart(ingresos, egresos, mesNombre, year) {
-    const canvasEl = document.getElementById('financeChart');
-    if (!canvasEl) return;
-    const ctx = canvasEl.getContext('2d');
-    
-    if (chartInstance) {
-        chartInstance.destroy();
-    }
-
-    chartInstance = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: ['Ingresos del Mes', 'Egresos del Mes'],
-            datasets: [{
-                label: 'Monto C$',
-                data: [ingresos, egresos],
-                backgroundColor: ['#28a745', '#dc3545'],
-                borderRadius: 6
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false },
-                title: {
-                    display: true,
-                    text: `Movimiento de ${mesNombre} ${year}`
-                }
-            },
-            scales: {
-                y: { beginAtZero: true }
-            }
-        }
-    });
-}
-
-async function descargarPDF() {
-    const { jsPDF } = window.jspdf;
-    let elementoReporte = document.getElementById('reportePDF');
-    
-    try {
-        let canvas = await html2canvas(elementoReporte, { scale: 2 });
-        let imgData = canvas.toDataURL('image/png');
-        
-        let pdf = new jsPDF('p', 'mm', 'a4');
-        let pageWidth = pdf.internal.pageSize.getWidth();
-        let pageHeight = (canvas.height * pageWidth) / canvas.width;
-        
-        pdf.addImage(imgData, 'PNG', 0, 10, pageWidth, pageHeight);
-        pdf.save(`Reporte_Financiero_Sindicato_${new Date().toISOString().slice(0,10)}.pdf`);
-    } catch (e) {
-        alert("Error al generar el PDF: " + e.message);
-    }
-}
-</script>
 </body>
 </html>
