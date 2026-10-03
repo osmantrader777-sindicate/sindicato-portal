@@ -659,8 +659,12 @@ function cargarNoticiasFirestore() {
 function subirFotoGaleria() {
     let tituloFoto = document.getElementById('galeriaTitulo').value.trim();
     
-    // Obtener los archivos listados en FilePond
-    const items = pondGaleria ? pondGaleria.getFiles() : [];
+    if (!pondGaleria) {
+        alert("El selector de fotos no se ha cargado correctamente.");
+        return;
+    }
+
+    const items = pondGaleria.getFiles();
 
     if (!items || items.length === 0) {
         alert("Por favor selecciona al menos una foto desde tu celular.");
@@ -668,37 +672,50 @@ function subirFotoGaleria() {
     }
 
     let nombreBase = tituloFoto || 'Actividad Sindicato';
-    let index = 0;
-    const total = items.length;
+    let total = items.length;
+    let procesadas = 0;
+    let guardadasExito = 0;
 
-    function subirSiguiente() {
-        if (index < total) {
-            let file = items[index].file;
+    let btnSubir = document.getElementById("btnSubirGaleria");
+    if (btnSubir) btnSubir.disabled = true;
 
-            comprimirImagen(file, 1200, 0.75, function(imgComprimida) {
-                let nombreFinal = total > 1 ? `${nombreBase} (${index + 1})` : nombreBase;
-                
-                db.collection('GaleriaFotos').add({
-                    titulo: nombreFinal,
-                    imagen: imgComprimida,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                }).then(() => {
-                    index++;
-                    subirSiguiente();
-                }).catch(err => {
-                    console.error("Error al subir foto: ", err);
-                    index++;
-                    subirSiguiente();
-                });
+    items.forEach((item, index) => {
+        let fileObj = item.file;
+
+        if (!fileObj) {
+            procesadas++;
+            verificarFin();
+            return;
+        }
+
+        comprimirImagen(fileObj, 1200, 0.75, function(imgComprimida) {
+            let nombreFinal = total > 1 ? `${nombreBase} (${index + 1})` : nombreBase;
+            
+            db.collection('GaleriaFotos').add({
+                titulo: nombreFinal,
+                imagen: imgComprimida,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            }).then(() => {
+                guardadasExito++;
+                procesadas++;
+                verificarFin();
+            }).catch(err => {
+                console.error("Error al subir foto: ", err);
+                procesadas++;
+                verificarFin();
             });
-        } else {
+        });
+    });
+
+    function verificarFin() {
+        if (procesadas === total) {
             document.getElementById('galeriaTitulo').value = '';
-            pondGaleria.removeFiles(); // Limpia la lista tras subir
-            alert(`¡Se subieron ${total} fotos correctamente a la Galería!`);
+            pondGaleria.removeFiles();
+            if (btnSubir) btnSubir.disabled = false;
+            alert(`¡Se procesaron ${guardadasExito} de ${total} fotos con éxito!`);
             calcularEspacioUsado();
         }
     }
-    subirSiguiente();
 }
 
 function cargarGaleriaFotos() {
@@ -1022,7 +1039,7 @@ function limpiarFormulario() {
             <!-- Control especial FilePond para selección múltiple -->
             <input id="galeriaInputFoto" type="file" class="filepond" name="filepond" accept="image/*" multiple data-max-files="50">
             
-            <button onclick="subirFotoGaleria()" style="background: #003366;">🚀 Subir Fotos a Galería</button>
+            <button id="btnSubirGaleria" onclick="subirFotoGaleria()" style="background: #003366;">🚀 Subir Fotos a Galería</button>
         </div>
 
         <div id="galeriaFotosGrid" class="gallery-grid"></div>
