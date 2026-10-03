@@ -337,6 +337,31 @@ iframe {
     border: none;
     border-radius: 8px;
 }
+
+/* Indicador de Almacenamiento */
+.storage-meter {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+    font-size: 0.85rem;
+    color: #495057;
+}
+.storage-bar-bg {
+    background: #e9ecef;
+    border-radius: 4px;
+    height: 8px;
+    width: 100%;
+    margin-top: 6px;
+    overflow: hidden;
+}
+.storage-bar-fill {
+    background: #28a745;
+    height: 100%;
+    width: 0%;
+    transition: width 0.4s ease;
+}
 </style>
 
 <script>
@@ -376,6 +401,7 @@ window.addEventListener('DOMContentLoaded', () => {
     cargarNoticiasFirestore();
     cargarGaleriaFotos();
     cargarGaleriaVideos();
+    calcularEspacioUsado();
 
     auth.onAuthStateChanged(user => {
         if (user) {
@@ -383,6 +409,7 @@ window.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'block');
             document.getElementById('loginSection').style.display = 'none';
             document.getElementById('logoutBtn').style.display = 'block';
+            calcularEspacioUsado();
         } else {
             esAdmin = false;
             document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
@@ -418,35 +445,97 @@ function logoutAdmin() {
     });
 }
 
-// ---------------- NOTICIAS ----------------
+// ---------------- CÁLCULO DE ESPACIO DE ALMACENAMIENTO ----------------
+async function calcularEspacioUsado() {
+    try {
+        let totalBytes = 0;
+
+        // Sumar peso de imágenes en Noticias
+        let snapshotNoticias = await db.collection('Noticias').get();
+        snapshotNoticias.forEach(doc => {
+            let img = doc.data().imagen;
+            if (img && img.startsWith('data:image')) {
+                totalBytes += Math.round((img.length * 3) / 4);
+            }
+        });
+
+        // Sumar peso de imágenes en Galería de Fotos
+        let snapshotGaleria = await db.collection('GaleriaFotos').get();
+        snapshotGaleria.forEach(doc => {
+            let img = doc.data().imagen;
+            if (img && img.startsWith('data:image')) {
+                totalBytes += Math.round((img.length * 3) / 4);
+            }
+        });
+
+        const limiteBytes = 1 * 1024 * 1024 * 1024; // 1 GB Límite Gratuito
+        let porcentaje = (totalBytes / limiteBytes) * 100;
+        if (porcentaje > 100) porcentaje = 100;
+
+        let mbUsados = (totalBytes / (1024 * 1024)).toFixed(2);
+        let mbDisponibles = ((limiteBytes - totalBytes) / (1024 * 1024)).toFixed(2);
+        if (mbDisponibles < 0) mbDisponibles = 0;
+
+        // Actualizar UI en los paneles de administración
+        document.querySelectorAll('.storage-text').forEach(el => {
+            el.innerText = `Espacio usado: ${mbUsados} MB / Disponible: ${mbDisponibles} MB (1 GB Máx)`;
+        });
+        document.querySelectorAll('.storage-bar-fill').forEach(el => {
+            el.style.width = porcentaje + '%';
+            if (porcentaje > 80) {
+                el.style.background = '#dc3545'; // Alerta rojo si pasa del 80%
+            } else {
+                el.style.background = '#28a745';
+            }
+        });
+    } catch (e) {
+        console.error("Error calculando almacenamiento:", e);
+    }
+}
+
+// ---------------- NOTICIAS (SOPORTE MÚLTIPLE) ----------------
 function publicar() {
     let txtTitulo = document.getElementById('titulo').value;
     let txtDescripcion = document.getElementById('descripcion').value;
     let txtFecha = document.getElementById('fecha').value;
-    let fileFoto = document.getElementById('foto').files[0];
+    let fileInput = document.getElementById('foto');
+    let archivos = fileInput.files;
 
     if (!txtTitulo && !txtDescripcion) {
         alert("Por favor escribe un título o descripción.");
         return;
     }
 
-    if (fileFoto) {
-        comprimirImagen(fileFoto, 1000, 0.7, function(imgComprimida) {
-            guardarEnFirestore(txtTitulo, txtDescripcion, txtFecha, imgComprimida);
-        });
+    if (archivos && archivos.length > 0) {
+        // Procesar múltiples archivos de forma secuencial
+        let index = 0;
+        function procesarSiguiente() {
+            if (index < archivos.length) {
+                comprimirImagen(archivos[index], 1000, 0.7, function(imgComprimida) {
+                    let tituloActual = archivos.length > 1 ? `${txtTitulo} (${index + 1})` : txtTitulo;
+                    guardarEnFirestore(tituloActual, txtDescripcion, txtFecha, imgComprimida, index === 0 && noticiaEditandoId ? noticiaEditandoId : null);
+                    index++;
+                    procesarSiguiente();
+                });
+            } else {
+                limpiarFormulario();
+                alert("¡Noticia(s) publicada(s) con éxito!");
+            }
+        }
+        procesarSiguiente();
     } else {
         if (noticiaEditandoId) {
             db.collection('Noticias').doc(noticiaEditandoId).get().then(doc => {
                 let imgExistente = doc.exists ? (doc.data().imagen || '') : '';
-                guardarEnFirestore(txtTitulo, txtDescripcion, txtFecha, imgExistente);
+                guardarEnFirestore(txtTitulo, txtDescripcion, txtFecha, imgExistente, noticiaEditandoId);
             });
         } else {
-            guardarEnFirestore(txtTitulo, txtDescripcion, txtFecha, '');
+            guardarEnFirestore(txtTitulo, txtDescripcion, txtFecha, '', null);
         }
     }
 }
 
-function guardarEnFirestore(t, d, f, img) {
+function guardarEnFirestore(t, d, f, img, docId) {
     let datosNoticia = {
         titulo: t,
         descripcion: d,
@@ -455,17 +544,15 @@ function guardarEnFirestore(t, d, f, img) {
         timestamp: firebase.firestore.FieldValue.serverTimestamp()
     };
 
-    if (noticiaEditandoId) {
-        db.collection('Noticias').doc(noticiaEditandoId).update(datosNoticia)
-        .then(() => {
+    if (docId) {
+        db.collection('Noticias').doc(docId).update(datosNoticia).then(() => {
             limpiarFormulario();
             alert("¡Noticia actualizada!");
+            calcularEspacioUsado();
         }).catch(err => alert("Error al actualizar: " + err.message));
     } else {
-        db.collection('Noticias').add(datosNoticia)
-        .then(() => {
-            limpiarFormulario();
-            alert("¡Noticia publicada!");
+        db.collection('Noticias').add(datosNoticia).then(() => {
+            calcularEspacioUsado();
         }).catch(err => alert("Error al publicar: " + err.message));
     }
 }
@@ -474,7 +561,7 @@ function cargarNoticiasFirestore() {
     db.collection('Noticias').orderBy('timestamp', 'desc').onSnapshot(snapshot => {
         let c = document.getElementById('lista');
         if (!c) return;
-        c.innerHTML = ''; 
+        c.innerHTML = ""; 
         
         snapshot.forEach(doc => {
             let id = doc.id;
@@ -514,27 +601,43 @@ function cargarNoticiasFirestore() {
     }, error => console.error("Error datos: ", error.message));
 }
 
-// ---------------- GALERÍA DE FOTOS EN FIREBASE ----------------
+// ---------------- GALERÍA DE FOTOS (SOPORTE MÚLTIPLE) ----------------
 function subirFotoGaleria() {
     let tituloFoto = document.getElementById('galeriaTitulo').value.trim();
-    let fileFoto = document.getElementById('galeriaInputFoto').files[0];
+    let fileInput = document.getElementById('galeriaInputFoto');
+    let archivos = fileInput.files;
 
-    if (!fileFoto) {
-        alert("Por favor selecciona una foto para subir.");
+    if (!archivos || archivos.length === 0) {
+        alert("Por favor selecciona al menos una foto para subir.");
         return;
     }
 
-    comprimirImagen(fileFoto, 1200, 0.75, function(imgComprimida) {
-        db.collection('GaleriaFotos').add({
-            titulo: tituloFoto || 'Foto Sindicato',
-            imagen: imgComprimida,
-            timestamp: firebase.firestore.FieldValue.serverTimestamp()
-        }).then(() => {
+    let index = 0;
+    function subirSiguiente() {
+        if (index < archivos.length) {
+            comprimirImagen(archivos[index], 1200, 0.75, function(imgComprimida) {
+                let nombreFinal = archivos.length > 1 ? `${tituloFoto || 'Foto Sindicato'} (${index + 1})` : (tituloFoto || 'Foto Sindicato');
+                db.collection('GaleriaFotos').add({
+                    titulo: nombreFinal,
+                    imagen: imgComprimida,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                }).then(() => {
+                    index++;
+                    subirSiguiente();
+                }).catch(err => {
+                    alert("Error al subir foto: " + err.message);
+                    index++;
+                    subirSiguiente();
+                });
+            });
+        } else {
             document.getElementById('galeriaTitulo').value = '';
-            document.getElementById('galeriaInputFoto').value = '';
-            alert("¡Foto agregada a la galería!");
-        }).catch(err => alert("Error al subir foto: " + err.message));
-    });
+            fileInput.value = '';
+            alert("¡Foto(s) agregada(s) a la galería con éxito!");
+            calcularEspacioUsado();
+        }
+    }
+    subirSiguiente();
 }
 
 function cargarGaleriaFotos() {
@@ -581,11 +684,13 @@ function cargarGaleriaFotos() {
 
 function eliminarFotoGaleria(id) {
     if (confirm("¿Deseas eliminar esta foto de la galería?")) {
-        db.collection('GaleriaFotos').doc(id).delete().catch(err => alert("Error: " + err.message));
+        db.collection('GaleriaFotos').doc(id).delete().then(() => {
+            calcularEspacioUsado();
+        }).catch(err => alert("Error: " + err.message));
     }
 }
 
-// ---------------- GALERÍA DE VIDEOS EN FIREBASE (CON CONVERSIÓN AUTOMÁTICA DE YOUTUBE) ----------------
+// ---------------- GALERÍA DE VIDEOS EN FIREBASE ----------------
 function subirVideoGaleria() {
     let tituloVideo = document.getElementById('videoTitulo').value.trim();
     let urlVideo = document.getElementById('videoUrlInput').value.trim();
@@ -595,7 +700,6 @@ function subirVideoGaleria() {
         return;
     }
 
-    // Convertir cualquier enlace de YouTube al formato embed limpio
     let embedUrl = urlVideo;
     if (urlVideo.includes("youtube.com/watch?v=")) {
         let videoId = urlVideo.split("v=")[1]?.split("&")[0];
@@ -754,7 +858,9 @@ function editarFirestore(id, t, f, d) {
 
 function eliminarFirestore(id) {
     if (confirm("¿Seguro que deseas eliminar esta noticia?")) {
-        db.collection('Noticias').doc(id).delete().catch(err => alert("Error: " + err.message));
+        db.collection('Noticias').doc(id).delete().then(() => {
+            calcularEspacioUsado();
+        }).catch(err => alert("Error: " + err.message));
     }
 }
 
@@ -800,10 +906,21 @@ function limpiarFormulario() {
 
         <div class="admin-only" style="background: #fff9e6; padding: 12px; border-radius: 8px; border: 1px dashed #ffc107; margin-bottom: 15px;">
             <h4 style="color: #b98d00; margin-top: 0;">Panel de Publicación de Noticias</h4>
+            
+            <!-- Indicador de Almacenamiento -->
+            <div class="storage-meter">
+                <span class="storage-text">Calculando almacenamiento...</span>
+                <div class="storage-bar-bg"><div class="storage-bar-fill"></div></div>
+            </div>
+
             <input id="titulo" placeholder="Título de la noticia">
             <input id="fecha" type="date">
             <textarea id="descripcion" style="height:90px" placeholder="Escribe el contenido aquí..."></textarea>
-            <input id="foto" type="file" accept="image/*">
+            
+            <!-- INPUT CON SELECCIÓN MÚLTIPLE Y COMPRESIÓN -->
+            <label style="font-size: 0.85rem; color: #666; display: block; margin-bottom: 5px;">Selecciona una o varias fotos:</label>
+            <input id="foto" type="file" accept="image/*" multiple>
+
             <button id="btnPublicar" onclick="publicar()" style="background: #28a745;">Publicar noticia</button>
         </div>
         
@@ -839,9 +956,20 @@ function limpiarFormulario() {
 
         <div class="admin-only" style="background: #e6f2ff; padding: 12px; border-radius: 8px; border: 1px dashed #003366; margin-bottom: 15px;">
             <h4 style="color: #003366; margin-top: 0;">Subir Foto a la Galería</h4>
+            
+            <!-- Indicador de Almacenamiento -->
+            <div class="storage-meter">
+                <span class="storage-text">Calculando almacenamiento...</span>
+                <div class="storage-bar-bg"><div class="storage-bar-fill"></div></div>
+            </div>
+
             <input id="galeriaTitulo" placeholder="Descripción / Título de la foto">
-            <input id="galeriaInputFoto" type="file" accept="image/*">
-            <button onclick="subirFotoGaleria()" style="background: #003366;">Subir Foto</button>
+            
+            <!-- INPUT CON SELECCIÓN MÚLTIPLE Y COMPRESIÓN -->
+            <label style="font-size: 0.85rem; color: #666; display: block; margin-bottom: 5px;">Selecciona una o varias fotos:</label>
+            <input id="galeriaInputFoto" type="file" accept="image/*" multiple>
+
+            <button onclick="subirFotoGaleria()" style="background: #003366;">Subir Foto(s)</button>
         </div>
 
         <div id="galeriaFotosGrid" class="gallery-grid"></div>
@@ -994,94 +1122,40 @@ function renderChart(ingresos, egresos, mesNombre, year) {
                 legend: { display: false },
                 title: {
                     display: true,
-                    text: `Reporte - ${mesNombre} ${year}`,
-                    color: '#003366',
-                    font: { size: 14, weight: 'bold' }
+                    text: `Reporte de ${mesNombre} ${year}`
                 }
-            },
-            scales: {
-                y: { beginAtZero: true }
             }
         }
     });
 }
 
 function iniciarFinanzas() {
-    const select = document.getElementById("mesSelector");
-    if (!select) return;
-    const year = new Date().getFullYear();
-    select.innerHTML = '';
-    
-    meses.forEach((mes, index) => {
-        let option = document.createElement("option");
-        option.value = index; 
-        option.text = mes + " " + year;
-        select.appendChild(option);
-    });
-    
-    select.addEventListener("change", () => { 
-        cargarDatos(parseInt(select.value), year); 
-    });
-    
-    const mesActual = new Date().getMonth();
-    select.value = mesActual;
-    cargarDatos(mesActual, year);
-}
+    const selector = document.getElementById('mesSelector');
+    if (!selector) return;
 
-async function descargarPDF() {
-    try {
-        const { jsPDF } = window.jspdf;
-        const reporte = document.getElementById("reportePDF");
-        
-        const canvas = await html2canvas(reporte, { scale: 2, useCORS: true });
-        const imgData = canvas.toDataURL("image/png");
-        const pdf = new jsPDF("p", "mm", "a4");
-        const ancho = 190;
-        const alto = (canvas.height * ancho) / canvas.width;
-        
-        pdf.addImage(imgData, "PNG", 10, 10, ancho, alto);
-        
-        const pdfBlob = pdf.output("blob");
-        const blobUrl = URL.createObjectURL(pdfBlob);
-        
-        const downloadLink = document.createElement("a");
-        downloadLink.href = blobUrl;
-        downloadLink.download = `Reporte_Sindicato_${new Date().getTime()}.pdf`;
-        document.body.appendChild(downloadLink);
-        downloadLink.click();
-        document.body.removeChild(downloadLink);
-        
-    } catch (e) {
-        alert("Error al generar el PDF: " + e.message);
-    }
-}
+    const fechaActual = new Date();
+    const currentYear = fechaActual.getFullYear();
+    const currentMonth = fechaActual.getMonth();
 
-// CONTROL DE SALIDA SIMPLE
-window.addEventListener('popstate', function () {
-    let salir = confirm("¿Deseas salir de la aplicación?");
-    if (salir) {
-        if (navigator.app && navigator.app.exitApp) {
-            navigator.app.exitApp();
-        } else if (navigator.device && navigator.device.exitApp) {
-            navigator.device.exitApp();
-        } else {
-            history.back();
+    selector.innerHTML = '';
+    for (let y = currentYear - 1; y <= currentYear + 1; y++) {
+        for (let m = 0; m < 12; m++) {
+            let opt = document.createElement('option');
+            opt.value = `${y}-${m}`;
+            opt.innerText = `${meses[m]} ${y}`;
+            if (y === currentYear && m === currentMonth) {
+                opt.selected = true;
+            }
+            selector.appendChild(opt);
         }
-    } else {
-        history.pushState(null, document.title, location.href);
     }
-});
 
-(function fijarSalida() {
-    history.pushState(null, document.title, location.href);
-})();
+    selector.addEventListener('change', (e) => {
+        let parts = e.target.value.split('-');
+        cargarDatos(parseInt(parts[1]), parseInt(parts[0]));
+    });
 
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=2')
-      .then(reg => console.log('App registrada con éxito:', reg.scope))
-      .catch(err => console.log('Error al registrar App:', err));
-  });
+    cargarDatos(currentMonth, currentYear);
 }
 </script>
 </body>
