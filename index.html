@@ -413,13 +413,15 @@ window.addEventListener('DOMContentLoaded', () => {
     let fInput = document.getElementById('fecha');
     if (fInput) fInput.value = new Date().toISOString().slice(0, 10);
 
-    // Inicializar FilePond para selección múltiple
+    // Configuración estricta para forzar multiselección en móviles Android/iOS
     const inputElement = document.querySelector('#galeriaInputFoto');
     if (inputElement) {
         pondGaleria = FilePond.create(inputElement, {
             allowMultiple: true,
-            maxFiles: 50,
-            labelIdle: 'Toca aquí para <span class="filepond--label-action">seleccionar varias fotos</span>'
+            allowReorder: true,
+            maxFiles: 100,
+            allowImagePreview: true,
+            labelIdle: 'Toca aquí para <span class="filepond--label-action">marcar varias fotos</span>'
         });
     }
 
@@ -1036,8 +1038,8 @@ function limpiarFormulario() {
             <h4 style="color: #003366; margin-top: 0;">Subir Foto(s) a la Galería</h4>
             <input id="galeriaTitulo" placeholder="Descripción / Título del evento (opcional)">
             
-            <!-- Control especial FilePond para selección múltiple -->
-            <input id="galeriaInputFoto" type="file" class="filepond" name="filepond" accept="image/*" multiple data-max-files="50">
+            <!-- Control HTML con atribute multiple explícito sin bloqueo de captura -->
+            <input id="galeriaInputFoto" type="file" class="filepond" name="filepond" accept="image/*" multiple="multiple" data-max-files="100">
             
             <button id="btnSubirGaleria" onclick="subirFotoGaleria()" style="background: #003366;">🚀 Subir Fotos a Galería</button>
         </div>
