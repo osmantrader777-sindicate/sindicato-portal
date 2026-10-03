@@ -78,42 +78,6 @@ body {
     color: #003366;
 }
 
-.summary {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    margin-top: 15px;
-}
-
-.card-finance {
-    flex: 1;
-    min-width: 100px;
-    background: #e6f0ff;
-    padding: 12px;
-    border-radius: 8px;
-    text-align: center;
-}
-
-.card-finance h3 {
-    font-size: 0.85rem;
-    margin: 0 0 5px 0;
-    color: #555;
-}
-
-.card-finance p {
-    font-size: 1rem;
-    font-weight: bold;
-    margin: 0;
-    color: #003366;
-}
-
-.chart-wrapper {
-    position: relative;
-    height: 260px;
-    width: 100%;
-    margin-top: 15px;
-}
-
 select, input, textarea {
     width: 100%;
     padding: 12px;
@@ -250,41 +214,6 @@ button:active {
 .lightbox-prev { left: 10px; }
 .lightbox-next { right: 10px; }
 
-/* Lista de Videos */
-.video-list {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-    margin-top: 15px;
-}
-
-.video-card {
-    background: #fff;
-    border-radius: 10px;
-    padding: 12px;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
-    border: 1px solid #e1e4e8;
-}
-
-.video-container {
-    position: relative;
-    width: 100%;
-    padding-bottom: 56.25%; /* Proporción 16:9 */
-    height: 0;
-    border-radius: 8px;
-    overflow: hidden;
-    background: #000;
-}
-
-.video-container iframe, .video-container video {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    border: none;
-}
-
 .admin-only {
     display: none;
 }
@@ -294,48 +223,6 @@ button:active {
     padding: 15px;
     border-radius: 10px;
     margin-bottom: 15px;
-}
-
-.bottom-nav {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 60px;
-    background: #ffffff;
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
-    box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
-    z-index: 1000;
-}
-
-.nav-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    color: #666;
-    text-decoration: none;
-    font-size: 0.75rem;
-    width: 25%;
-    height: 100%;
-    cursor: pointer;
-}
-
-.nav-item i {
-    font-size: 1.2rem;
-    margin-bottom: 3px;
-}
-
-.nav-item.active {
-    color: #003366;
-    font-weight: bold;
-}
-
-iframe {
-    border: none;
-    border-radius: 8px;
 }
 
 /* Indicador de Almacenamiento */
@@ -400,7 +287,6 @@ window.addEventListener('DOMContentLoaded', () => {
 
     cargarNoticiasFirestore();
     cargarGaleriaFotos();
-    cargarGaleriaVideos();
     calcularEspacioUsado();
 
     auth.onAuthStateChanged(user => {
@@ -418,7 +304,6 @@ window.addEventListener('DOMContentLoaded', () => {
         }
         cargarNoticiasFirestore();
         cargarGaleriaFotos();
-        cargarGaleriaVideos();
     });
 
     iniciarFinanzas();
@@ -450,7 +335,6 @@ async function calcularEspacioUsado() {
     try {
         let totalBytes = 0;
 
-        // Sumar peso de imágenes en Noticias
         let snapshotNoticias = await db.collection('Noticias').get();
         snapshotNoticias.forEach(doc => {
             let img = doc.data().imagen;
@@ -459,7 +343,6 @@ async function calcularEspacioUsado() {
             }
         });
 
-        // Sumar peso de imágenes en Galería de Fotos
         let snapshotGaleria = await db.collection('GaleriaFotos').get();
         snapshotGaleria.forEach(doc => {
             let img = doc.data().imagen;
@@ -476,14 +359,13 @@ async function calcularEspacioUsado() {
         let mbDisponibles = ((limiteBytes - totalBytes) / (1024 * 1024)).toFixed(2);
         if (mbDisponibles < 0) mbDisponibles = 0;
 
-        // Actualizar UI en los paneles de administración
         document.querySelectorAll('.storage-text').forEach(el => {
             el.innerText = `Espacio usado: ${mbUsados} MB / Disponible: ${mbDisponibles} MB (1 GB Máx)`;
         });
         document.querySelectorAll('.storage-bar-fill').forEach(el => {
             el.style.width = porcentaje + '%';
             if (porcentaje > 80) {
-                el.style.background = '#dc3545'; // Alerta rojo si pasa del 80%
+                el.style.background = '#dc3545';
             } else {
                 el.style.background = '#28a745';
             }
@@ -493,7 +375,49 @@ async function calcularEspacioUsado() {
     }
 }
 
-// ---------------- NOTICIAS (SOPORTE MÚLTIPLE) ----------------
+// ---------------- ELIMINACIÓN AUTOMÁTICA DE FOTOS VIEJAS (>6 MESES) ----------------
+async function limpiarFotosAntiguas() {
+    const confirmacion = confirm("¿Deseas buscar y borrar automáticamente todas las publicaciones e imágenes de la galería con más de 6 meses de antigüedad?");
+    if (!confirmacion) return;
+
+    let ahora = new Date();
+    let limiteSeisMeses = new Date();
+    limiteSeisMeses.setMonth(ahora.getMonth() - 6);
+
+    let borradas = 0;
+
+    try {
+        let noticiasSnapshot = await db.collection('Noticias').get();
+        for (let doc of noticiasSnapshot.docs) {
+            let data = doc.data();
+            let fechaDoc = data.timestamp ? data.timestamp.toDate() : (data.fecha ? new Date(data.fecha) : null);
+            if (fechaDoc && fechaDoc < limiteSeisMeses) {
+                await db.collection('Noticias').doc(doc.id).delete();
+                borradas++;
+            }
+        }
+
+        let galeriaSnapshot = await db.collection('GaleriaFotos').get();
+        for (let doc of galeriaSnapshot.docs) {
+            let data = doc.data();
+            let fechaDoc = data.timestamp ? data.timestamp.toDate() : null;
+            if (fechaDoc && fechaDoc < limiteSeisMeses) {
+                await db.collection('GaleriaFotos').doc(doc.id).delete();
+                borradas++;
+            }
+        }
+
+        alert(`¡Limpieza completada! Se eliminaron ${borradas} elementos antiguos para liberar espacio.`);
+        calcularEspacioUsado();
+        cargarNoticiasFirestore();
+        cargarGaleriaFotos();
+
+    } catch (e) {
+        alert("Error durante la limpieza: " + e.message);
+    }
+}
+
+// ---------------- PUBLICACIÓN DE NOTICIAS ----------------
 function publicar() {
     let txtTitulo = document.getElementById('titulo').value;
     let txtDescripcion = document.getElementById('descripcion').value;
@@ -600,22 +524,25 @@ function cargarNoticiasFirestore() {
     }, error => console.error("Error datos: ", error.message));
 }
 
-// ---------------- GALERÍA DE FOTOS (SOPORTE MÚLTIPLE) ----------------
+// ---------------- SUBIDA MASIVA A GALERÍA DE CUALQUIER ACTIVIDAD ----------------
 function subirFotoGaleria() {
-    let tituloFoto = document.getElementById('galeriaTitulo').value.trim();
+    let tituloActividad = document.getElementById('galeriaTitulo').value.trim();
     let fileInput = document.getElementById('galeriaInputFoto');
     let archivos = fileInput.files;
 
     if (!archivos || archivos.length === 0) {
-        alert("Por favor selecciona al menos una foto para subir.");
+        alert("Por favor selecciona al menos una foto desde tu celular.");
         return;
     }
 
+    let nombreBase = tituloActividad || 'Actividad Sindicato';
     let index = 0;
+
     function subirSiguiente() {
         if (index < archivos.length) {
             comprimirImagen(archivos[index], 1200, 0.75, function(imgComprimida) {
-                let nombreFinal = archivos.length > 1 ? `${tituloFoto || 'Foto Sindicato'} (${index + 1})` : (tituloFoto || 'Foto Sindicato');
+                let nombreFinal = archivos.length > 1 ? `${nombreBase} (${index + 1})` : nombreBase;
+                
                 db.collection('GaleriaFotos').add({
                     titulo: nombreFinal,
                     imagen: imgComprimida,
@@ -624,7 +551,7 @@ function subirFotoGaleria() {
                     index++;
                     subirSiguiente();
                 }).catch(err => {
-                    alert("Error al subir foto: " + err.message);
+                    console.error("Error al subir foto: ", err);
                     index++;
                     subirSiguiente();
                 });
@@ -632,7 +559,7 @@ function subirFotoGaleria() {
         } else {
             document.getElementById('galeriaTitulo').value = '';
             fileInput.value = '';
-            alert("¡Foto(s) agregada(s) a la galería con éxito!");
+            alert(`¡Se subieron ${archivos.length} fotos correctamente a la Galería!`);
             calcularEspacioUsado();
         }
     }
@@ -647,7 +574,7 @@ function cargarGaleriaFotos() {
         galeriaFotosArray = [];
 
         if (snapshot.empty) {
-            grid.innerHTML = '<p style="color:#666; font-size:0.9rem; grid-column:1/-1;">Aún no hay fotos cargadas en esta sección. Inicia sesión como administrador para agregar fotos.</p>';
+            grid.innerHTML = '<p style="color:#666; font-size:0.9rem; grid-column:1/-1;">Aún no hay fotos cargadas en la galería.</p>';
             return;
         }
 
@@ -658,14 +585,14 @@ function cargarGaleriaFotos() {
 
             galeriaFotosArray.push({
                 url: data.imagen,
-                titulo: data.titulo || 'Foto Sindicato'
+                titulo: data.titulo || 'Actividad Sindicato'
             });
 
             let currentIdx = idx;
             let card = document.createElement('div');
             card.className = 'gallery-card';
 
-            let html = `<img src="${data.imagen}" alt="Foto Sindicato" onclick="abrirVisorGaleria(${currentIdx})">
+            let html = `<img src="${data.imagen}" alt="Actividad Sindicato" onclick="abrirVisorGaleria(${currentIdx})">
                         <div class="info" onclick="abrirVisorGaleria(${currentIdx})">
                             ${escapeHtml(data.titulo || '')}
                         </div>`;
@@ -686,88 +613,6 @@ function eliminarFotoGaleria(id) {
         db.collection('GaleriaFotos').doc(id).delete().then(() => {
             calcularEspacioUsado();
         }).catch(err => alert("Error: " + err.message));
-    }
-}
-
-// ---------------- GALERÍA DE VIDEOS EN FIREBASE ----------------
-function subirVideoGaleria() {
-    let tituloVideo = document.getElementById('videoTitulo').value.trim();
-    let urlVideo = document.getElementById('videoUrlInput').value.trim();
-
-    if (!urlVideo) {
-        alert("Por favor ingresa el enlace del video (YouTube o MP4).");
-        return;
-    }
-
-    let embedUrl = urlVideo;
-    if (urlVideo.includes("youtube.com/watch?v=")) {
-        let videoId = urlVideo.split("v=")[1]?.split("&")[0];
-        if (videoId) embedUrl = `https://www.youtube.com/embed/${videoId}`;
-    } else if (urlVideo.includes("youtu.be/")) {
-        let videoId = urlVideo.split("youtu.be/")[1]?.split("?")[0];
-        if (videoId) embedUrl = `https://www.youtube.com/embed/${videoId}`;
-    }
-
-    db.collection('GaleriaVideos').add({
-        titulo: tituloVideo || 'Video Informativo',
-        url: embedUrl,
-        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-    }).then(() => {
-        document.getElementById('videoTitulo').value = '';
-        document.getElementById('videoUrlInput').value = '';
-        alert("¡Video guardado con éxito!");
-    }).catch(err => alert("Error al guardar video: " + err.message));
-}
-
-function cargarGaleriaVideos() {
-    db.collection('GaleriaVideos').orderBy('timestamp', 'desc').onSnapshot(snapshot => {
-        let container = document.getElementById('galeriaVideosList');
-        if (!container) return;
-        container.innerHTML = '';
-
-        if (snapshot.empty) {
-            container.innerHTML = '<p style="color:#666; font-size:0.9rem;">Aún no hay videos guardados en esta sección. Inicia sesión como administrador para publicar uno.</p>';
-            return;
-        }
-
-        snapshot.forEach(doc => {
-            let id = doc.id;
-            let data = doc.data();
-
-            let card = document.createElement('div');
-            card.className = 'video-card';
-
-            let html = `<h4 style="margin:0 0 8px 0; color:#003366;">${escapeHtml(data.titulo || '')}</h4>`;
-            html += `<div class="video-container">`;
-
-            if (data.url.includes("youtube.com") || data.url.includes("embed")) {
-                html += `<iframe src="${data.url}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
-            } else {
-                html += `<video controls src="${data.url}"></video>`;
-            }
-
-            html += `</div>`;
-
-            if (esAdmin) {
-                html += `<button style="background:#dc3545; padding:6px; margin-top:8px; font-size:0.8rem; border:none; border-radius:6px;" onclick="eliminarVideoGaleria('${id}')"><i class="fa-solid fa-trash"></i> Eliminar Video</button>`;
-            }
-
-            card.innerHTML = html;
-            container.appendChild(card);
-        });
-    });
-}
-
-function eliminarVideoGaleria(id) {
-    if (confirm("¿Deseas eliminar este video?")) {
-        db.collection('GaleriaVideos').doc(id).delete().catch(err => alert("Error: " + err.message));
-    }
-}
-
-function toggleDrive(id) {
-    let el = document.getElementById(id);
-    if (el) {
-        el.style.display = (el.style.display === 'none' || el.style.display === '') ? 'block' : 'none';
     }
 }
 
@@ -897,7 +742,7 @@ async function descargarPDF() {
     }
 }
 
-// ---------------- UTILIDADES ----------------
+// ---------------- CONVERTIDOR Y COMPRESOR DE IMÁGENES ----------------
 function comprimirImagen(file, maxDimension, calidad, callback) {
     let reader = new FileReader();
     reader.onload = function(e) {
@@ -977,10 +822,10 @@ function limpiarFormulario() {
     <div id="lightboxCaption" class="lightbox-caption"></div>
 </div>
 
-<!-- PESTAÑA INICIO / NOTICIAS -->
+<!-- PESTAÑA PRINCIPAL: NOTICIAS Y GALERÍA -->
 <div id="news" class="tab active">
     <div class="card-section">
-        <h2><i class="fa-regular fa-newspaper"></i> Noticias Recientes</h2>
+        <h2><i class="fa-regular fa-newspaper"></i> Noticias y Galería</h2>
         
         <div id="loginSection" class="login-container">
             <h4 style="margin-top:0;">Acceso Administrador</h4>
@@ -991,27 +836,51 @@ function limpiarFormulario() {
         
         <button id="logoutBtn" onclick="logoutAdmin()" style="display:none; background:#dc3545; margin-bottom:15px;">Cerrar Sesión Admin</button>
 
+        <!-- PANEL DE CONTROL ADMINISTRATIVO -->
         <div class="admin-only" style="background: #fff9e6; padding: 12px; border-radius: 8px; border: 1px dashed #ffc107; margin-bottom: 15px;">
-            <h4 style="color: #b98d00; margin-top: 0;">Panel de Publicación de Noticias</h4>
+            <h4 style="color: #b98d00; margin-top: 0;">Panel de Control y Mantenimiento</h4>
             
-            <!-- Indicador de Almacenamiento -->
+            <!-- Indicador de Almacenamiento Consumido -->
             <div class="storage-meter">
                 <span class="storage-text">Calculando almacenamiento...</span>
                 <div class="storage-bar-bg"><div class="storage-bar-fill"></div></div>
             </div>
 
+            <!-- Botón de Limpieza Automática de Fotos Viejas -->
+            <button onclick="limpiarFotosAntiguas()" style="background:#d9534f; margin-bottom: 15px; font-size: 0.85rem;">
+                🧹 Borrar Fotos/Noticias de más de 6 Meses (Liberar Espacio)
+            </button>
+
+            <hr style="border: 0; border-top: 1px solid #ffe8a1; margin: 15px 0;">
+
+            <!-- SECCIÓN 1: PUBLICAR NOTICIA -->
+            <h4 style="color: #003366; margin-top: 0;"><i class="fa-regular fa-pen-to-square"></i> Publicar Noticia Informativa</h4>
             <input id="titulo" placeholder="Título de la noticia">
             <input id="fecha" type="date">
             <textarea id="descripcion" style="height:90px" placeholder="Escribe el contenido aquí..."></textarea>
             
-            <!-- INPUT CON SELECCIÓN MÚLTIPLE Y COMPRESIÓN -->
-            <label style="font-size: 0.85rem; color: #666; display: block; margin-bottom: 5px;">Selecciona una o varias fotos:</label>
+            <label style="font-size: 0.85rem; color: #666; display: block; margin-bottom: 5px;">Selecciona foto(s) para la noticia:</label>
             <input id="foto" type="file" accept="image/*" multiple>
 
-            <button id="btnPublicar" onclick="publicar()" style="background: #28a745;">Publicar noticia</button>
+            <button id="btnPublicar" onclick="publicar()" style="background: #28a745; margin-bottom:15px;">Publicar noticia</button>
+
+            <hr style="border: 0; border-top: 1px solid #ffe8a1; margin: 15px 0;">
+
+            <!-- SECCIÓN 2: SUBIDA MASIVA A GALERÍA DE CUALQUIER ACTIVIDAD -->
+            <h4 style="color: #003366; margin-top: 0;"><i class="fa-solid fa-camera"></i> Subida Masiva a Galería de Actividades</h4>
+            <label style="font-size: 0.85rem; color: #555; display: block; margin-bottom: 4px;">Nombre de la actividad o evento (opcional):</label>
+            <input id="galeriaTitulo" placeholder="Ej. Convivio, Entrega de Uniformes, Capacitación...">
+            
+            <label style="font-size: 0.85rem; color: #555; display: block; margin-bottom: 4px;">Selecciona múltiples fotos desde tu celular:</label>
+            <input id="galeriaInputFoto" type="file" accept="image/*" multiple>
+            
+            <button onclick="subirFotoGaleria()" style="background: #003366;">🚀 Subir fotos a Galería</button>
         </div>
         
         <div id="lista"></div>
+
+        <h3 style="margin-top:25px; color:#003366;"><i class="fa-solid fa-images"></i> Galería de Fotos de Actividades</h3>
+        <div id="galeriaFotosGrid" class="gallery-grid"></div>
     </div>
 </div>
 
