@@ -13,6 +13,10 @@
 <!-- Iconos de FontAwesome -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
+<!-- FilePond CSS y JS (Permite selección múltiple garantizada en móviles) -->
+<link href="https://unpkg.com/filepond/dist/filepond.css" rel="stylesheet">
+<script src="https://unpkg.com/filepond/dist/filepond.js"></script>
+
 <!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -362,6 +366,16 @@ iframe {
     width: 0%;
     transition: width 0.4s ease;
 }
+
+/* Personalización Visual de FilePond */
+.filepond--root {
+    margin-bottom: 12px;
+}
+.filepond--panel-root {
+    background-color: #ffffff;
+    border: 1px dashed #003366;
+    border-radius: 8px;
+}
 </style>
 
 <script>
@@ -383,6 +397,7 @@ let noticiaEditandoId = null;
 let esAdmin = false; 
 let galeriaFotosArray = [];
 let indiceFotoActual = 0;
+let pondGaleria = null;
 
 function showTab(id, element) {
     document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
@@ -397,6 +412,16 @@ function showTab(id, element) {
 window.addEventListener('DOMContentLoaded', () => {
     let fInput = document.getElementById('fecha');
     if (fInput) fInput.value = new Date().toISOString().slice(0, 10);
+
+    // Inicializar FilePond para selección múltiple
+    const inputElement = document.querySelector('#galeriaInputFoto');
+    if (inputElement) {
+        pondGaleria = FilePond.create(inputElement, {
+            allowMultiple: true,
+            maxFiles: 50,
+            labelIdle: 'Toca aquí para <span class="filepond--label-action">seleccionar varias fotos</span>'
+        });
+    }
 
     cargarNoticiasFirestore();
     cargarGaleriaFotos();
@@ -630,24 +655,28 @@ function cargarNoticiasFirestore() {
     }, error => console.error("Error datos: ", error.message));
 }
 
-// ---------------- GALERÍA DE FOTOS (SUBIDA MASIVA Y TÍTULOS AUTOMÁTICOS) ----------------
+// ---------------- GALERÍA DE FOTOS (SUBIDA MASIVA CON FILEPOND Y TÍTULOS AUTOMÁTICOS) ----------------
 function subirFotoGaleria() {
     let tituloFoto = document.getElementById('galeriaTitulo').value.trim();
-    let fileInput = document.getElementById('galeriaInputFoto');
-    let archivos = fileInput.files;
+    
+    // Obtener los archivos listados en FilePond
+    const items = pondGaleria ? pondGaleria.getFiles() : [];
 
-    if (!archivos || archivos.length === 0) {
+    if (!items || items.length === 0) {
         alert("Por favor selecciona al menos una foto desde tu celular.");
         return;
     }
 
     let nombreBase = tituloFoto || 'Actividad Sindicato';
     let index = 0;
+    const total = items.length;
 
     function subirSiguiente() {
-        if (index < archivos.length) {
-            comprimirImagen(archivos[index], 1200, 0.75, function(imgComprimida) {
-                let nombreFinal = archivos.length > 1 ? `${nombreBase} (${index + 1})` : nombreBase;
+        if (index < total) {
+            let file = items[index].file;
+
+            comprimirImagen(file, 1200, 0.75, function(imgComprimida) {
+                let nombreFinal = total > 1 ? `${nombreBase} (${index + 1})` : nombreBase;
                 
                 db.collection('GaleriaFotos').add({
                     titulo: nombreFinal,
@@ -664,8 +693,8 @@ function subirFotoGaleria() {
             });
         } else {
             document.getElementById('galeriaTitulo').value = '';
-            fileInput.value = '';
-            alert(`¡Se subieron ${archivos.length} fotos correctamente a la Galería!`);
+            pondGaleria.removeFiles(); // Limpia la lista tras subir
+            alert(`¡Se subieron ${total} fotos correctamente a la Galería!`);
             calcularEspacioUsado();
         }
     }
@@ -989,7 +1018,10 @@ function limpiarFormulario() {
         <div class="admin-only" style="background: #e6f2ff; padding: 12px; border-radius: 8px; border: 1px dashed #003366; margin-bottom: 15px;">
             <h4 style="color: #003366; margin-top: 0;">Subir Foto(s) a la Galería</h4>
             <input id="galeriaTitulo" placeholder="Descripción / Título del evento (opcional)">
-            <input id="galeriaInputFoto" type="file" accept="image/*" multiple>
+            
+            <!-- Control especial FilePond para selección múltiple -->
+            <input id="galeriaInputFoto" type="file" class="filepond" name="filepond" accept="image/*" multiple data-max-files="50">
+            
             <button onclick="subirFotoGaleria()" style="background: #003366;">🚀 Subir Fotos a Galería</button>
         </div>
 
