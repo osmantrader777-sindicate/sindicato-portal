@@ -100,7 +100,7 @@ body {
 }
 
 .card-finance h3 {
-    font-size: 0.8rem;
+    font-size: 0.78rem;
     margin: 0 0 5px 0;
     color: #555;
     text-transform: uppercase;
@@ -164,7 +164,6 @@ button:active {
     color: #777;
 }
 
-/* Grilla de Galería */
 .gallery-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
@@ -197,7 +196,6 @@ button:active {
     cursor: pointer;
 }
 
-/* Visor Carrusel Pantalla Completa */
 .lightbox-modal {
     display: none;
     position: fixed;
@@ -256,7 +254,6 @@ button:active {
 .lightbox-prev { left: 10px; }
 .lightbox-next { right: 10px; }
 
-/* Lista de Videos */
 .video-list {
     display: flex;
     flex-direction: column;
@@ -344,7 +341,6 @@ iframe {
     border-radius: 8px;
 }
 
-/* Indicador de Almacenamiento */
 .storage-meter {
     background: #ffffff;
     border: 1px solid #dee2e6;
@@ -369,7 +365,6 @@ iframe {
     transition: width 0.4s ease;
 }
 
-/* Tabla de Resumen Financiero Contable */
 .financial-table {
     width: 100%;
     border-collapse: collapse;
@@ -1027,7 +1022,6 @@ function limpiarFormulario() {
         <div class="admin-only" style="background: #fff9e6; padding: 12px; border-radius: 8px; border: 1px dashed #ffc107; margin-bottom: 15px;">
             <h4 style="color: #b98d00; margin-top: 0;">Panel de Publicación de Noticias</h4>
             
-            <!-- Indicador de Almacenamiento -->
             <div class="storage-meter">
                 <span class="storage-text">Calculando almacenamiento...</span>
                 <div class="storage-bar-bg"><div class="storage-bar-fill"></div></div>
@@ -1048,7 +1042,7 @@ function limpiarFormulario() {
     </div>
 </div>
 
-<!-- PESTAÑA FINANZAS (Google Drive Excel + Estado de Flujo Acumulado) -->
+<!-- PESTAÑA FINANZAS -->
 <div id="docs" class="tab">
     <div class="card-section" id="reportePDF">
         <h2><i class="fa-solid fa-chart-line"></i> Reporte Financiero</h2>
@@ -1058,7 +1052,7 @@ function limpiarFormulario() {
         
         <button onclick="descargarPDF()" style="margin-bottom:15px;"><i class="fa-solid fa-file-pdf"></i> Descargar Reporte PDF</button>
 
-        <!-- Tarjetas Rápidas de Resumen -->
+        <!-- Tarjetas de Control -->
         <div class="summary">
             <div class="card-finance">
                 <h3>Ingresos del Mes</h3>
@@ -1073,12 +1067,12 @@ function limpiarFormulario() {
                 <p id="diferencia">C$ 0.00</p>
             </div>
             <div class="card-finance">
-                <h3>Caja Acumulada Final</h3>
+                <h3>Acumulado Disponible</h3>
                 <p id="saldoFinal" style="color:#003366;">C$ 0.00</p>
             </div>
         </div>
 
-        <!-- Tabla Detallada del Resumen Financiero Contable -->
+        <!-- Estado Financiero Consolidado -->
         <h3 style="margin-top: 20px; font-size: 1rem; color: #003366;"><i class="fa-solid fa-scale-balanced"></i> Estado de Disponibilidad Acumulada</h3>
         <table class="financial-table">
             <thead>
@@ -1089,23 +1083,23 @@ function limpiarFormulario() {
             </thead>
             <tbody>
                 <tr>
-                    <td><strong>(+) Saldo Inicial Acumulado</strong> <br><small style="color:#666;">Disponibilidad del mes anterior</small></td>
+                    <td><strong>(+) Saldo Inicial Acumulado</strong><br><small style="color:#666;">Acumulado al cierre del mes anterior</small></td>
                     <td id="tblSaldoInicial" class="text-right">C$ 0.00</td>
                 </tr>
                 <tr>
-                    <td>(+) Ingresos Ejecutados en el Mes</td>
+                    <td>(+) Ingresos del Mes</td>
                     <td id="tblIngresos" class="text-right text-positive">C$ 0.00</td>
                 </tr>
                 <tr>
-                    <td>(-) Egresos Ejecutados en el Mes</td>
+                    <td>(-) Egresos del Mes</td>
                     <td id="tblEgresos" class="text-right text-negative">C$ 0.00</td>
                 </tr>
                 <tr class="highlight-row">
-                    <td>(=) Resultado Neto del Mes (Superávit/Déficit)</td>
+                    <td>(=) Superávit / Déficit del Mes</td>
                     <td id="tblResultadoMes" class="text-right">C$ 0.00</td>
                 </tr>
                 <tr class="total-row">
-                    <td>(=) Saldo Final Disponible en Caja / Banco</td>
+                    <td>(=) Acumulado Final Disponible</td>
                     <td id="tblSaldoFinal" class="text-right">C$ 0.00</td>
                 </tr>
             </tbody>
@@ -1191,14 +1185,35 @@ function limpiarFormulario() {
 </div>
 
 <script>
-// ---------------- LÓGICA DE FINANZAS DE GOOGLE SHEETS ----------------
+// ---------------- LÓGICA DE FINANZAS CONECTADA A GOOGLE SHEETS ----------------
 const SHEET_ID = "1g8g4YVEk1mZ8IF86sLmqfoXYBDQjsTHe";
 const meses = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 let chartInstance = null;
 
 function limpiarNumero(valor) {
-    if (typeof valor === "string") { valor = valor.replace(/[^\d.-]/g, ""); }
+    if (typeof valor === "number") return valor;
+    if (typeof valor === "string") {
+        valor = valor.replace(/[^\d.-]/g, "");
+    }
     return parseFloat(valor) || 0;
+}
+
+function parseFecha(rawFecha) {
+    if (!rawFecha) return null;
+    if (typeof rawFecha === "string" && rawFecha.startsWith("Date(")) {
+        let parts = rawFecha.match(/\d+/g);
+        if (parts) {
+            return new Date(parts[0], parts[1], parts[2]);
+        }
+    }
+    if (typeof rawFecha === "string" && rawFecha.includes("/")) {
+        let p = rawFecha.split("/");
+        if (p.length === 3) {
+            return new Date(p[2], p[1] - 1, p[0]);
+        }
+    }
+    let d = new Date(rawFecha);
+    return isNaN(d.getTime()) ? null : d;
 }
 
 async function fetchSheetData(sheetName) {
@@ -1208,9 +1223,9 @@ async function fetchSheetData(sheetName) {
         const text = await response.text();
         const jsonString = text.substring(47, text.length - 2);
         const data = JSON.parse(jsonString);
-        return data.table.rows;
+        return data.table.rows || [];
     } catch (e) {
-        console.error("Error obteniendo datos:", e);
+        console.error("Error consultando hoja " + sheetName + ":", e);
         return [];
     }
 }
@@ -1221,54 +1236,30 @@ function calcularPorMesRows(rows, mesIndex, year) {
     
     rows.forEach(row => {
         if (row.c && row.c[0] && row.c[3]) {
-            let rawFecha = row.c[0].v;
+            let fecha = parseFecha(row.c[0].v);
             let monto = limpiarNumero(row.c[3].v);
             
-            let fecha = null;
-            if (typeof rawFecha === "string" && rawFecha.startsWith("Date(")) {
-                let parts = rawFecha.match(/\d+/g);
-                if (parts) {
-                    fecha = new Date(parts[0], parts[1], parts[2]);
-                }
-            } else {
-                fecha = new Date(rawFecha);
-            }
-            
-            if (fecha && !isNaN(fecha.getTime())) {
-                if (fecha.getMonth() === mesIndex && fecha.getFullYear() === year) {
-                    total += monto;
-                }
+            if (fecha && fecha.getMonth() === mesIndex && fecha.getFullYear() === year) {
+                total += monto;
             }
         }
     });
     return total;
 }
 
-// Función para calcular acumulados de meses anteriores
 function calcularAcumuladoHastaMesAnterior(rows, mesIndex, year) {
     let total = 0;
     if (!rows) return total;
 
+    let fechaCorte = new Date(year, mesIndex, 1);
+
     rows.forEach(row => {
         if (row.c && row.c[0] && row.c[3]) {
-            let rawFecha = row.c[0].v;
+            let fecha = parseFecha(row.c[0].v);
             let monto = limpiarNumero(row.c[3].v);
 
-            let fecha = null;
-            if (typeof rawFecha === "string" && rawFecha.startsWith("Date(")) {
-                let parts = rawFecha.match(/\d+/g);
-                if (parts) {
-                    fecha = new Date(parts[0], parts[1], parts[2]);
-                }
-            } else {
-                fecha = new Date(rawFecha);
-            }
-
-            if (fecha && !isNaN(fecha.getTime())) {
-                let fechaCorte = new Date(year, mesIndex, 1);
-                if (fecha < fechaCorte) {
-                    total += monto;
-                }
+            if (fecha && fecha < fechaCorte) {
+                total += monto;
             }
         }
     });
@@ -1287,39 +1278,51 @@ function iniciarFinanzas() {
     let anioActual = fechaActual.getFullYear();
 
     mesSelector.innerHTML = '';
+    
+    // Generar opciones desde Noviembre 2025 hasta fin de 2026
+    let opciones = [
+        { mes: 10, anio: 2025, label: "Noviembre 2025" },
+        { mes: 11, anio: 2025, label: "Diciembre 2025" }
+    ];
+
     meses.forEach((m, idx) => {
+        opciones.push({ mes: idx, anio: 2026, label: `${m} 2026` });
+    });
+
+    opciones.forEach(op => {
         let opt = document.createElement('option');
-        opt.value = idx;
-        opt.innerText = `${m} ${anioActual}`;
-        if (idx === fechaActual.getMonth()) opt.selected = true;
+        opt.value = `${op.mes}-${op.anio}`;
+        opt.innerText = op.label;
+        if (op.mes === fechaActual.getMonth() && op.anio === anioActual) {
+            opt.selected = true;
+        }
         mesSelector.appendChild(opt);
     });
 
     mesSelector.addEventListener('change', () => {
-        cargarDatos(parseInt(mesSelector.value), anioActual);
+        let parts = mesSelector.value.split('-');
+        cargarDatos(parseInt(parts[0]), parseInt(parts[1]));
     });
 
-    cargarDatos(fechaActual.getMonth(), anioActual);
+    let parts = mesSelector.value.split('-');
+    cargarDatos(parseInt(parts[0]), parseInt(parts[1]));
 }
 
 async function cargarDatos(mesIndex, year) {
     const ingresosRows = await fetchSheetData("INGRESOS");
     const egresosRows = await fetchSheetData("EGRESOS");
 
-    // 1. Cálculos del mes actual
     let ingresosMes = calcularPorMesRows(ingresosRows, mesIndex, year);
     let egresosMes = calcularPorMesRows(egresosRows, mesIndex, year);
     let resultadoMes = ingresosMes - egresosMes;
 
-    // 2. Cálculos de acumulados anteriores
     let ingresosAnteriores = calcularAcumuladoHastaMesAnterior(ingresosRows, mesIndex, year);
     let egresosAnteriores = calcularAcumuladoHastaMesAnterior(egresosRows, mesIndex, year);
     let saldoInicialAcumulado = ingresosAnteriores - egresosAnteriores;
 
-    // 3. Saldo acumulado final
     let saldoFinalAcumulado = saldoInicialAcumulado + resultadoMes;
 
-    // Actualización de Tarjetas
+    // Tarjetas
     document.getElementById("ingresos").innerText = formatoCordobas(ingresosMes);
     document.getElementById("egresos").innerText = formatoCordobas(egresosMes);
     
@@ -1329,7 +1332,7 @@ async function cargarDatos(mesIndex, year) {
 
     document.getElementById("saldoFinal").innerText = formatoCordobas(saldoFinalAcumulado);
 
-    // Actualización de Tabla Contable
+    // Tabla Contable
     document.getElementById("tblSaldoInicial").innerText = formatoCordobas(saldoInicialAcumulado);
     document.getElementById("tblIngresos").innerText = formatoCordobas(ingresosMes);
     document.getElementById("tblEgresos").innerText = formatoCordobas(egresosMes);
