@@ -13,7 +13,7 @@
 <!-- Iconos de FontAwesome -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-<!-- FilePond CSS y JS (Permite selección múltiple garantizada en móviles) -->
+<!-- FilePond CSS y JS -->
 <link href="https://unpkg.com/filepond/dist/filepond.css" rel="stylesheet">
 <script src="https://unpkg.com/filepond/dist/filepond.js"></script>
 
@@ -84,28 +84,30 @@ body {
 
 .summary {
     display: flex;
-    gap: 10px;
+    gap: 8px;
     flex-wrap: wrap;
     margin-top: 15px;
 }
 
 .card-finance {
     flex: 1;
-    min-width: 100px;
-    background: #e6f0ff;
+    min-width: 45%;
+    background: #f8f9fa;
     padding: 12px;
     border-radius: 8px;
     text-align: center;
+    border: 1px solid #e9ecef;
 }
 
 .card-finance h3 {
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     margin: 0 0 5px 0;
     color: #555;
+    text-transform: uppercase;
 }
 
 .card-finance p {
-    font-size: 1rem;
+    font-size: 0.95rem;
     font-weight: bold;
     margin: 0;
     color: #003366;
@@ -113,7 +115,7 @@ body {
 
 .chart-wrapper {
     position: relative;
-    height: 260px;
+    height: 240px;
     width: 100%;
     margin-top: 15px;
 }
@@ -273,7 +275,7 @@ button:active {
 .video-container {
     position: relative;
     width: 100%;
-    padding-bottom: 56.25%; /* Proporción 16:9 */
+    padding-bottom: 56.25%;
     height: 0;
     border-radius: 8px;
     overflow: hidden;
@@ -367,14 +369,54 @@ iframe {
     transition: width 0.4s ease;
 }
 
-/* Personalización Visual de FilePond */
-.filepond--root {
-    margin-bottom: 12px;
-}
-.filepond--panel-root {
-    background-color: #ffffff;
-    border: 1px dashed #003366;
+/* Tabla de Resumen Financiero Contable */
+.financial-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+    font-size: 0.88rem;
+    background: #ffffff;
     border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #e0e0e0;
+}
+
+.financial-table th {
+    background: #003366;
+    color: #ffffff;
+    padding: 10px;
+    text-align: left;
+    font-size: 0.85rem;
+}
+
+.financial-table td {
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+.financial-table tr.highlight-row {
+    background: #eef5ff;
+    font-weight: bold;
+}
+
+.financial-table tr.total-row {
+    background: #003366;
+    color: #ffffff;
+    font-weight: bold;
+}
+
+.financial-table td.text-right {
+    text-align: right;
+}
+
+.text-positive {
+    color: #28a745;
+    font-weight: bold;
+}
+
+.text-negative {
+    color: #dc3545;
+    font-weight: bold;
 }
 </style>
 
@@ -413,15 +455,13 @@ window.addEventListener('DOMContentLoaded', () => {
     let fInput = document.getElementById('fecha');
     if (fInput) fInput.value = new Date().toISOString().slice(0, 10);
 
-    // Configuración estricta para forzar multiselección en móviles Android/iOS
     const inputElement = document.querySelector('#galeriaInputFoto');
     if (inputElement) {
         pondGaleria = FilePond.create(inputElement, {
             allowMultiple: true,
-            allowReorder: true,
+            allowReplace: false,
             maxFiles: 100,
-            allowImagePreview: true,
-            labelIdle: 'Toca aquí para <span class="filepond--label-action">marcar varias fotos</span>'
+            labelIdle: 'Toca para agregar fotos'
         });
     }
 
@@ -657,7 +697,7 @@ function cargarNoticiasFirestore() {
     }, error => console.error("Error datos: ", error.message));
 }
 
-// ---------------- GALERÍA DE FOTOS (SUBIDA MASIVA CON FILEPOND Y TÍTULOS AUTOMÁTICOS) ----------------
+// ---------------- GALERÍA DE FOTOS ----------------
 function subirFotoGaleria() {
     let tituloFoto = document.getElementById('galeriaTitulo').value.trim();
     
@@ -1008,23 +1048,76 @@ function limpiarFormulario() {
     </div>
 </div>
 
-<!-- PESTAÑA FINANZAS (Google Drive Excel) -->
+<!-- PESTAÑA FINANZAS (Google Drive Excel + Estado de Flujo Acumulado) -->
 <div id="docs" class="tab">
     <div class="card-section" id="reportePDF">
         <h2><i class="fa-solid fa-chart-line"></i> Reporte Financiero</h2>
+        
+        <label style="font-weight: bold; font-size: 0.85rem; color: #003366;">Seleccionar Período:</label>
         <select id="mesSelector"></select>
-        <button onclick="descargarPDF()" style="margin-bottom:10px;"><i class="fa-solid fa-file-pdf"></i> Descargar Reporte PDF</button>
+        
+        <button onclick="descargarPDF()" style="margin-bottom:15px;"><i class="fa-solid fa-file-pdf"></i> Descargar Reporte PDF</button>
+
+        <!-- Tarjetas Rápidas de Resumen -->
         <div class="summary">
-            <div class="card-finance"><h3>Ingresos</h3><p id="ingresos">C$ 0.00</p></div>
-            <div class="card-finance"><h3>Egresos</h3><p id="egresos">C$ 0.00</p></div>
-            <div class="card-finance"><h3>Diferencia</h3><p id="diferencia">C$ 0.00</p></div>
+            <div class="card-finance">
+                <h3>Ingresos del Mes</h3>
+                <p id="ingresos" class="text-positive">C$ 0.00</p>
+            </div>
+            <div class="card-finance">
+                <h3>Egresos del Mes</h3>
+                <p id="egresos" class="text-negative">C$ 0.00</p>
+            </div>
+            <div class="card-finance">
+                <h3>Superávit / Déficit</h3>
+                <p id="diferencia">C$ 0.00</p>
+            </div>
+            <div class="card-finance">
+                <h3>Caja Acumulada Final</h3>
+                <p id="saldoFinal" style="color:#003366;">C$ 0.00</p>
+            </div>
         </div>
+
+        <!-- Tabla Detallada del Resumen Financiero Contable -->
+        <h3 style="margin-top: 20px; font-size: 1rem; color: #003366;"><i class="fa-solid fa-scale-balanced"></i> Estado de Disponibilidad Acumulada</h3>
+        <table class="financial-table">
+            <thead>
+                <tr>
+                    <th>Concepto / Componente</th>
+                    <th class="text-right">Monto (C$)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>(+) Saldo Inicial Acumulado</strong> <br><small style="color:#666;">Disponibilidad del mes anterior</small></td>
+                    <td id="tblSaldoInicial" class="text-right">C$ 0.00</td>
+                </tr>
+                <tr>
+                    <td>(+) Ingresos Ejecutados en el Mes</td>
+                    <td id="tblIngresos" class="text-right text-positive">C$ 0.00</td>
+                </tr>
+                <tr>
+                    <td>(-) Egresos Ejecutados en el Mes</td>
+                    <td id="tblEgresos" class="text-right text-negative">C$ 0.00</td>
+                </tr>
+                <tr class="highlight-row">
+                    <td>(=) Resultado Neto del Mes (Superávit/Déficit)</td>
+                    <td id="tblResultadoMes" class="text-right">C$ 0.00</td>
+                </tr>
+                <tr class="total-row">
+                    <td>(=) Saldo Final Disponible en Caja / Banco</td>
+                    <td id="tblSaldoFinal" class="text-right">C$ 0.00</td>
+                </tr>
+            </tbody>
+        </table>
+
         <div class="chart-wrapper">
             <canvas id="financeChart"></canvas>
         </div>
     </div>
+
     <div class="card-section">
-        <h3>Archivo completo</h3>
+        <h3>Archivo completo en Google Drive</h3>
         <iframe src="https://docs.google.com/spreadsheets/d/1g8g4YVEk1mZ8IF86sLmqfoXYBDQjsTHe/preview" width="100%" height="400"></iframe>
     </div>
 </div>
@@ -1038,7 +1131,6 @@ function limpiarFormulario() {
             <h4 style="color: #003366; margin-top: 0;">Subir Foto(s) a la Galería</h4>
             <input id="galeriaTitulo" placeholder="Descripción / Título del evento (opcional)">
             
-            <!-- Control HTML con atribute multiple explícito sin bloqueo de captura -->
             <input id="galeriaInputFoto" type="file" class="filepond" name="filepond" accept="image/*" multiple="multiple" data-max-files="100">
             
             <button id="btnSubirGaleria" onclick="subirFotoGaleria()" style="background: #003366;">🚀 Subir Fotos a Galería</button>
@@ -1152,6 +1244,37 @@ function calcularPorMesRows(rows, mesIndex, year) {
     return total;
 }
 
+// Función para calcular acumulados de meses anteriores
+function calcularAcumuladoHastaMesAnterior(rows, mesIndex, year) {
+    let total = 0;
+    if (!rows) return total;
+
+    rows.forEach(row => {
+        if (row.c && row.c[0] && row.c[3]) {
+            let rawFecha = row.c[0].v;
+            let monto = limpiarNumero(row.c[3].v);
+
+            let fecha = null;
+            if (typeof rawFecha === "string" && rawFecha.startsWith("Date(")) {
+                let parts = rawFecha.match(/\d+/g);
+                if (parts) {
+                    fecha = new Date(parts[0], parts[1], parts[2]);
+                }
+            } else {
+                fecha = new Date(rawFecha);
+            }
+
+            if (fecha && !isNaN(fecha.getTime())) {
+                let fechaCorte = new Date(year, mesIndex, 1);
+                if (fecha < fechaCorte) {
+                    total += monto;
+                }
+            }
+        }
+    });
+    return total;
+}
+
 function formatoCordobas(valor) {
     return "C$ " + valor.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
@@ -1183,15 +1306,41 @@ async function cargarDatos(mesIndex, year) {
     const ingresosRows = await fetchSheetData("INGRESOS");
     const egresosRows = await fetchSheetData("EGRESOS");
 
-    let ingresos = calcularPorMesRows(ingresosRows, mesIndex, year);
-    let egresos = calcularPorMesRows(egresosRows, mesIndex, year);
-    let diferencia = ingresos - egresos;
+    // 1. Cálculos del mes actual
+    let ingresosMes = calcularPorMesRows(ingresosRows, mesIndex, year);
+    let egresosMes = calcularPorMesRows(egresosRows, mesIndex, year);
+    let resultadoMes = ingresosMes - egresosMes;
 
-    document.getElementById("ingresos").innerText = formatoCordobas(ingresos);
-    document.getElementById("egresos").innerText = formatoCordobas(egresos);
-    document.getElementById("diferencia").innerText = formatoCordobas(diferencia);
+    // 2. Cálculos de acumulados anteriores
+    let ingresosAnteriores = calcularAcumuladoHastaMesAnterior(ingresosRows, mesIndex, year);
+    let egresosAnteriores = calcularAcumuladoHastaMesAnterior(egresosRows, mesIndex, year);
+    let saldoInicialAcumulado = ingresosAnteriores - egresosAnteriores;
 
-    renderChart(ingresos, egresos, meses[mesIndex], year);
+    // 3. Saldo acumulado final
+    let saldoFinalAcumulado = saldoInicialAcumulado + resultadoMes;
+
+    // Actualización de Tarjetas
+    document.getElementById("ingresos").innerText = formatoCordobas(ingresosMes);
+    document.getElementById("egresos").innerText = formatoCordobas(egresosMes);
+    
+    let elDiferencia = document.getElementById("diferencia");
+    elDiferencia.innerText = formatoCordobas(resultadoMes);
+    elDiferencia.className = resultadoMes >= 0 ? "text-positive" : "text-negative";
+
+    document.getElementById("saldoFinal").innerText = formatoCordobas(saldoFinalAcumulado);
+
+    // Actualización de Tabla Contable
+    document.getElementById("tblSaldoInicial").innerText = formatoCordobas(saldoInicialAcumulado);
+    document.getElementById("tblIngresos").innerText = formatoCordobas(ingresosMes);
+    document.getElementById("tblEgresos").innerText = formatoCordobas(egresosMes);
+    
+    let elTblResultado = document.getElementById("tblResultadoMes");
+    elTblResultado.innerText = formatoCordobas(resultadoMes);
+    elTblResultado.className = "text-right " + (resultadoMes >= 0 ? "text-positive" : "text-negative");
+
+    document.getElementById("tblSaldoFinal").innerText = formatoCordobas(saldoFinalAcumulado);
+
+    renderChart(ingresosMes, egresosMes, meses[mesIndex], year);
 }
 
 function renderChart(ingresos, egresos, mesNombre, year) {
@@ -1204,7 +1353,7 @@ function renderChart(ingresos, egresos, mesNombre, year) {
     chartInstance = new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: ['Ingresos', 'Egresos'],
+            labels: ['Ingresos del Mes', 'Egresos del Mes'],
             datasets: [{
                 label: 'Monto C$',
                 data: [ingresos, egresos],
@@ -1219,7 +1368,7 @@ function renderChart(ingresos, egresos, mesNombre, year) {
                 legend: { display: false },
                 title: {
                     display: true,
-                    text: `Reporte - ${mesNombre} ${year}`
+                    text: `Movimiento de ${mesNombre} ${year}`
                 }
             },
             scales: {
