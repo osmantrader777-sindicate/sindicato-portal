@@ -435,6 +435,7 @@ let esAdmin = false;
 let galeriaFotosArray = [];
 let indiceFotoActual = 0;
 let pondGaleria = null;
+let listaVideosPendientes = [];
 
 function showTab(id, element) {
     document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
@@ -805,13 +806,13 @@ function eliminarFotoGaleria(id) {
     }
 }
 
-// ---------------- GALERÍA DE VIDEOS ----------------
-function subirVideoGaleria() {
-    let tituloVideo = document.getElementById('videoTitulo').value.trim();
+// ---------------- GALERÍA DE VIDEOS (ACUMULACIÓN Y SUBIDA EN LOTE) ----------------
+function agregarVideoALista() {
+    let txtTitulo = document.getElementById('videoTitulo').value.trim();
     let urlVideo = document.getElementById('videoUrlInput').value.trim();
 
     if (!urlVideo) {
-        alert("Por favor ingresa el enlace del video (YouTube o MP4).");
+        alert("Por favor ingresa un enlace de video válido.");
         return;
     }
 
@@ -824,15 +825,76 @@ function subirVideoGaleria() {
         if (videoId) embedUrl = `https://www.youtube.com/embed/${videoId}`;
     }
 
-    db.collection('GaleriaVideos').add({
-        titulo: tituloVideo || 'Video Informativo',
-        url: embedUrl,
-        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-    }).then(() => {
-        document.getElementById('videoTitulo').value = '';
-        document.getElementById('videoUrlInput').value = '';
-        alert("¡Video guardado con éxito!");
-    }).catch(err => alert("Error al guardar video: " + err.message));
+    listaVideosPendientes.push({
+        titulo: txtTitulo || 'Video Informativo',
+        url: embedUrl
+    });
+
+    document.getElementById('videoTitulo').value = '';
+    document.getElementById('videoUrlInput').value = '';
+
+    actualizarPreListaVideosUI();
+}
+
+function actualizarPreListaVideosUI() {
+    let container = document.getElementById('preListaVideosContainer');
+    let ul = document.getElementById('preListaVideosUl');
+    let cant = document.getElementById('cantVideosPre');
+    let btnGuardar = document.getElementById('btnGuardarLoteVideos');
+
+    if (listaVideosPendientes.length === 0) {
+        container.style.display = 'none';
+        btnGuardar.style.display = 'none';
+        return;
+    }
+
+    container.style.display = 'block';
+    btnGuardar.style.display = 'block';
+    cant.innerText = listaVideosPendientes.length;
+
+    ul.innerHTML = '';
+    listaVideosPendientes.forEach((v, idx) => {
+        let li = document.createElement('li');
+        li.style.marginBottom = '4px';
+        li.innerHTML = `<strong>${escapeHtml(v.titulo)}</strong> - <small style="color:#666;">${escapeHtml(v.url)}</small> 
+                        <span onclick="eliminarDePreLista(${idx})" style="color:red; cursor:pointer; margin-left:8px;"><i class="fa-solid fa-trash"></i></span>`;
+        ul.appendChild(li);
+    });
+}
+
+function eliminarDePreLista(index) {
+    listaVideosPendientes.splice(index, 1);
+    actualizarPreListaVideosUI();
+}
+
+async function subirLoteVideos() {
+    if (listaVideosPendientes.length === 0) return;
+
+    let btnGuardar = document.getElementById('btnGuardarLoteVideos');
+    btnGuardar.disabled = true;
+
+    try {
+        let batch = db.batch();
+
+        listaVideosPendientes.forEach(v => {
+            let docRef = db.collection('GaleriaVideos').doc();
+            batch.set(docRef, {
+                titulo: v.titulo,
+                url: v.url,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        });
+
+        await batch.commit();
+
+        alert(`¡Se publicaron ${listaVideosPendientes.length} video(s) con éxito en Firebase!`);
+        listaVideosPendientes = [];
+        actualizarPreListaVideosUI();
+    } catch (e) {
+        alert("Error al guardar lote de videos: " + e.message);
+    } finally {
+        btnGuardar.disabled = false;
+    }
 }
 
 function cargarGaleriaVideos() {
@@ -1147,16 +1209,32 @@ function limpiarFormulario() {
         <h2><i class="fa-solid fa-video"></i> Videos</h2>
 
         <div class="admin-only" style="background: #e6f2ff; padding: 12px; border-radius: 8px; border: 1px dashed #003366; margin-bottom: 15px;">
-            <h4 style="color: #003366; margin-top: 0;">Agregar Video Informativo</h4>
-            <input id="videoTitulo" placeholder="Título del Video">
+            <h4 style="color: #003366; margin-top: 0;">Agregar Videos Informativos</h4>
+            
+            <input id="videoTitulo" placeholder="Título del Video (Opcional)">
             <input id="videoUrlInput" placeholder="Enlace del video (YouTube o MP4)">
-            <button onclick="subirVideoGaleria()" style="background: #003366;">Guardar Video</button>
+            
+            <button onclick="agregarVideoALista()" style="background: #17a2b8; margin-bottom: 10px;">
+                <i class="fa-solid fa-plus"></i> Agregar a la lista
+            </button>
+
+            <!-- Pre-lista de videos listos para subir -->
+            <div id="preListaVideosContainer" style="display:none; background:#fff; padding:10px; border-radius:8px; border:1px solid #ccc; margin-bottom:12px;">
+                <h5 style="margin:0 0 8px 0; color:#003366;">Videos por publicar (<span id="cantVideosPre">0</span>):</h5>
+                <ul id="preListaVideosUl" style="padding-left:20px; margin:0; font-size:0.85rem; color:#333;"></ul>
+            </div>
+
+            <button id="btnGuardarLoteVideos" onclick="subirLoteVideos()" style="background: #003366; display:none;">
+                🚀 Publicar Todos los Videos de la Lista
+            </button>
         </div>
 
         <div id="galeriaVideosList" class="video-list"></div>
 
         <div style="margin-top:20px; border-top:1px solid #ddd; padding-top:15px;">
-            <button onclick="toggleDrive('driveVideos')" style="background:#6c757d; font-size:0.85rem;"><i class="fa-brands fa-google-drive"></i> Ver Archivo Histórico de Videos (Drive)</button>
+            <button onclick="toggleDrive('driveVideos')" style="background:#6c757d; font-size:0.85rem;">
+                <i class="fa-brands fa-google-drive"></i> Ver Archivo Histórico de Videos (Drive)
+            </button>
             <div id="driveVideos" style="display:none; margin-top:10px;">
                 <iframe src="https://docs.google.com/spreadsheets/d/1e6x93z5jkCPXMkNWPR_juLbabQXbpEot/preview" width="100%" height="450"></iframe>
             </div>
@@ -1279,7 +1357,6 @@ function iniciarFinanzas() {
 
     mesSelector.innerHTML = '';
     
-    // Generar opciones desde Noviembre 2025 hasta fin de 2026
     let opciones = [
         { mes: 10, anio: 2025, label: "Noviembre 2025" },
         { mes: 11, anio: 2025, label: "Diciembre 2025" }
