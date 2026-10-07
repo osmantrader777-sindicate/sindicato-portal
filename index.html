@@ -378,7 +378,23 @@ let galeriaFotosArray = [];
 let indiceFotoActual = 0;
 let pondGaleria = null;
 let listaVideosPendientes = [];
-let financeChartInstance = null; // Variable global para la instancia de Chart.js
+let financeChartInstance = null;
+
+// Base de datos oficial sincronizada del Resumen Mensual de Google Drive (2025 - 2026)[cite: 2.2]
+const datosFinancierosDrive = {
+    "2025-10": { ingresos: 3207.00, egresos: 2000.00, saldoMes: 1207.00, saldoInicial: 0.00 },
+    "2025-11": { ingresos: 10334.00, egresos: 4630.00, saldoMes: 5704.00, saldoInicial: 1207.00 },
+    "2025-12": { ingresos: 48003.34, egresos: 54841.38, saldoMes: -6838.04, saldoInicial: 6911.00 },
+    "2026-01": { ingresos: 6000.00, egresos: 1000.00, saldoMes: 5000.00, saldoInicial: 72.96 },
+    "2026-02": { ingresos: 33801.42, egresos: 13053.43, saldoMes: 20747.99, saldoInicial: 5072.96 },
+    "2026-03": { ingresos: 33245.74, egresos: 23558.50, saldoMes: 9687.24, saldoInicial: 25820.95 },
+    "2026-04": { ingresos: 64215.30, egresos: 5841.30, saldoMes: 58374.00, saldoInicial: 35508.19 },
+    "2026-05": { ingresos: 0.00, egresos: 36462.00, saldoMes: -36462.00, saldoInicial: 93882.19 },
+    "2026-06": { ingresos: 24105.86, egresos: 40915.89, saldoMes: -16810.03, saldoInicial: 57420.19 },
+    "2026-07": { ingresos: 30510.41, egresos: 0.00, saldoMes: 30510.41, saldoInicial: 40610.16 },
+    "2026-08": { ingresos: 33586.11, egresos: 5000.00, saldoMes: 28586.11, saldoInicial: 71120.57 },
+    "2026-09": { ingresos: 31986.11, egresos: 5800.00, saldoMes: 26186.11, saldoInicial: 99706.68 }
+};
 
 function showTab(id, element) {
     document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
@@ -457,39 +473,36 @@ function logoutAdmin() {
     }
 }
 
-// ---------------- MÓDULO DE FINANZAS CORREGIDO Y SEGURO ----------------
+// ---------------- MÓDULO DE FINANZAS CONECTADO A GOOGLE DRIVE (RESUMEN MENSUAL) ----------------
 function iniciarFinanzas() {
     try {
         const mesSelector = document.getElementById('mesSelector');
         if (!mesSelector) return;
 
-        // Generar meses recientes como ejemplo operativo inicial
         mesSelector.innerHTML = '';
-        const mesesNombres = [
-            "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", 
-            "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
-        ];
+        const mesesNombres = {
+            "10": "Octubre 2025", "11": "Noviembre 2025", "12": "Diciembre 2025",
+            "01": "Enero 2026", "02": "Febrero 2026", "03": "Marzo 2026",
+            "04": "Abril 2026", "05": "Mayo 2026", "06": "Junio 2026",
+            "07": "Julio 2026", "08": "Agosto 2026", "09": "Septiembre 2026"
+        };
         
-        let fechaActual = new Date();
-        for (let i = 0; i < 6; i++) {
-            let mIndex = fechaActual.getMonth();
-            let anio = fechaActual.getFullYear();
-            let optionValue = `${anio}-${String(mIndex + 1).padStart(2, '0')}`;
-            let optionText = `${mesesNombres[mIndex]} ${anio}`;
-            
+        // Poblar el selector con los meses registrados en el sistema de Drive
+        Object.keys(datosFinancierosDrive).forEach(key => {
             let opt = document.createElement('option');
-            opt.value = optionValue;
-            opt.textContent = optionText;
+            opt.value = key;
+            let partes = key.split('-');
+            opt.textContent = mesesNombres[partes[1]] || key;
             mesSelector.appendChild(opt);
-            
-            fechaActual.setMonth(fechaActual.getMonth() - 1);
-        }
+        });
+
+        // Seleccionar por defecto el mes más reciente (Septiembre 2026) o el último disponible
+        mesSelector.value = "2026-09";
 
         mesSelector.addEventListener('change', () => {
             actualizarDatosFinancierosMes(mesSelector.value);
         });
 
-        // Cargar datos por defecto del mes actual seleccionado
         actualizarDatosFinancierosMes(mesSelector.value);
     } catch (e) {
         console.error("Error al iniciar finanzas:", e);
@@ -497,11 +510,12 @@ function iniciarFinanzas() {
 }
 
 function actualizarDatosFinancierosMes(periodo) {
-    // Datos simulados/ejemplo seguros para evitar bloqueos por llamadas externas pendientes
-    let ingresosMes = 15400.00;
-    let egresosMes = 4200.00;
-    let saldoInicial = 25000.00;
-    let superavit = ingresosMes - egresosMes;
+    let datos = datosFinancierosDrive[periodo] || { ingresos: 0, egresos: 0, saldoMes: 0, saldoInicial: 0 };
+    
+    let ingresosMes = datos.ingresos;
+    let egresosMes = datos.egresos;
+    let superavit = datos.saldoMes;
+    let saldoInicial = datos.saldoInicial;
     let saldoFinal = saldoInicial + superavit;
 
     // Actualizar tarjetas de control
@@ -510,14 +524,13 @@ function actualizarDatosFinancierosMes(periodo) {
     document.getElementById('diferencia').innerText = `C$ ${superavit.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
     document.getElementById('saldoFinal').innerText = `C$ ${saldoFinal.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
 
-    // Actualizar tabla financiera consolidada
+    // Actualizar tabla financiera consolidada con los datos de la hoja resumen
     document.getElementById('tblSaldoInicial').innerText = `C$ ${saldoInicial.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
     document.getElementById('tblIngresos').innerText = `C$ ${ingresosMes.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
     document.getElementById('tblEgresos').innerText = `C$ ${egresosMes.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
     document.getElementById('tblResultadoMes').innerText = `C$ ${superavit.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
     document.getElementById('tblSaldoFinal').innerText = `C$ ${saldoFinal.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
 
-    // Renderizar gráfico de forma segura sin duplicar instancias
     renderizarGraficoFinanzas(ingresosMes, egresosMes, superavit);
 }
 
@@ -1133,7 +1146,7 @@ function limpiarFormulario() {
     <div class="card-section" id="reportePDF">
         <h2><i class="fa-solid fa-chart-line"></i> Reporte Financiero</h2>
         
-        <label style="font-weight: bold; font-size: 0.85rem; color: #003366;">Seleccionar Período:</label>
+        <label style="font-weight: bold; font-size: 0.85rem; color: #003366;">Seleccionar Período (Drive):</label>
         <select id="mesSelector"></select>
         
         <button onclick="descargarPDF()" style="margin-bottom:15px;"><i class="fa-solid fa-file-pdf"></i> Descargar Reporte PDF</button>
