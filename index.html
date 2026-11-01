@@ -148,3 +148,1096 @@ button:active {
     background: #fff;
     border-radius: 10px;
     overflow: hidden;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    border: 1px solid #e1e4e8;
+}
+.gallery-card img {
+    width: 100%;
+    height: 140px;
+    object-fit: cover;
+    display: block;
+    cursor: pointer;
+}
+.gallery-card .info {
+    padding: 6px;
+    font-size: 0.8rem;
+    text-align: center;
+    color: #003366;
+    font-weight: 600;
+    cursor: pointer;
+}
+.lightbox-modal {
+    display: none;
+    position: fixed;
+    z-index: 2000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.92);
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    padding: 15px;
+}
+.lightbox-modal img {
+    max-width: 85%;
+    max-height: 75vh;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+}
+.lightbox-caption {
+    color: white;
+    margin-top: 15px;
+    font-size: 1rem;
+    text-align: center;
+}
+.lightbox-close {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    color: white;
+    font-size: 35px;
+    font-weight: bold;
+    cursor: pointer;
+    z-index: 2005;
+}
+.lightbox-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: none;
+    font-size: 24px;
+    padding: 15px 12px;
+    cursor: pointer;
+    border-radius: 6px;
+    z-index: 2005;
+    width: auto;
+}
+.lightbox-prev { left: 10px; }
+.lightbox-next { right: 10px; }
+.video-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-top: 15px;
+}
+.video-card {
+    background: #fff;
+    border-radius: 10px;
+    padding: 12px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    border: 1px solid #e1e4e8;
+}
+.video-container {
+    position: relative;
+    width: 100%;
+    padding-bottom: 56.25%;
+    height: 0;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #000;
+}
+.video-container iframe, .video-container video {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+.admin-only {
+    display: none;
+}
+.login-container {
+    background: #e9ecef;
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 15px;
+}
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background: #ffffff;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+    z-index: 1000;
+}
+.nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #666;
+    text-decoration: none;
+    font-size: 0.75rem;
+    width: 25%;
+    height: 100%;
+    cursor: pointer;
+}
+.nav-item i {
+    font-size: 1.2rem;
+    margin-bottom: 3px;
+}
+.nav-item.active {
+    color: #003366;
+    font-weight: bold;
+}
+iframe {
+    border: none;
+    border-radius: 8px;
+}
+.storage-meter {
+    background: #ffffff;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+    font-size: 0.85rem;
+    color: #495057;
+}
+.storage-bar-bg {
+    background: #e9ecef;
+    border-radius: 4px;
+    height: 8px;
+    width: 100%;
+    margin-top: 6px;
+    overflow: hidden;
+}
+.storage-bar-fill {
+    background: #28a745;
+    height: 100%;
+    width: 0%;
+    transition: width 0.4s ease;
+}
+.financial-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+    font-size: 0.88rem;
+    background: #ffffff;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #e0e0e0;
+}
+.financial-table th {
+    background: #003366;
+    color: #ffffff;
+    padding: 10px;
+    text-align: left;
+    font-size: 0.85rem;
+}
+.financial-table td {
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+}
+.financial-table tr.highlight-row {
+    background: #eef5ff;
+    font-weight: bold;
+}
+.financial-table tr.total-row {
+    background: #003366;
+    color: #ffffff;
+    font-weight: bold;
+}
+.financial-table td.text-right {
+    text-align: right;
+}
+.text-positive {
+    color: #28a745;
+    font-weight: bold;
+}
+.text-negative {
+    color: #dc3545;
+    font-weight: bold;
+}
+</style>
+<script>
+// Firebase Config (Solo para Noticias, Fotos y Videos)
+const firebaseConfig = {
+  apiKey: "AIzaSyBXrIndvikCMg47NfN6NzmB3lYpui2AfWQ",
+  authDomain: "noticias-sindicato-cips.firebaseapp.com",
+  projectId: "noticias-sindicato-cips",
+  storageBucket: "noticias-sindicato-cips.firebasestorage.app",
+  messagingSenderId: "113761910632",
+  appId: "1:113761910632:web:d0ea2b15a4d82fbe0f20dd"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+let noticiaEditandoId = null; 
+let esAdmin = false; 
+let galeriaFotosArray = [];
+let indiceFotoActual = 0;
+let pondGaleria = null;
+let listaVideosPendientes = [];
+let financeChartInstance = null;
+
+// =========================================================================
+// BASE DE DATOS OFICIAL DE FINANZAS (Sincronizada con Google Drive)
+// Aquí puedes agregar fácilmente los próximos meses (ej: "2026-11", "2026-12")
+// =========================================================================
+const datosFinancierosDrive = {
+    "2025-10": { ingresos: 3207.00, egresos: 2000.00, saldoMes: 1207.00, saldoInicial: 0.00 },
+    "2025-11": { ingresos: 10334.00, egresos: 4630.00, saldoMes: 5704.00, saldoInicial: 1207.00 },
+    "2025-12": { ingresos: 48003.34, egresos: 54841.38, saldoMes: -6838.04, saldoInicial: 6911.00 },
+    "2026-01": { ingresos: 6000.00, egresos: 1000.00, saldoMes: 5000.00, saldoInicial: 72.96 },
+    "2026-02": { ingresos: 33801.42, egresos: 13053.43, saldoMes: 20747.99, saldoInicial: 5072.96 },
+    "2026-03": { ingresos: 33245.74, egresos: 23558.50, saldoMes: 9687.24, saldoInicial: 25820.95 },
+    "2026-04": { ingresos: 64215.30, egresos: 5841.30, saldoMes: 58374.00, saldoInicial: 35508.19 },
+    "2026-05": { ingresos: 0.00, egresos: 36462.00, saldoMes: -36462.00, saldoInicial: 93882.19 },
+    "2026-06": { ingresos: 24105.86, egresos: 40915.89, saldoMes: -16810.03, saldoInicial: 57420.19 },
+    "2026-07": { ingresos: 30510.41, egresos: 0.00, saldoMes: 30510.41, saldoInicial: 40610.16 },
+    "2026-08": { ingresos: 33586.11, egresos: 5000.00, saldoMes: 28586.11, saldoInicial: 71120.57 },
+    "2026-09": { ingresos: 31986.11, egresos: 5800.00, saldoMes: 26186.11, saldoInicial: 99706.68 },
+    "2026-10": { ingresos: 35000.00, egresos: 6200.00, saldoMes: 28800.00, saldoInicial: 125892.79 } // <-- Actualizado con Octubre
+};
+
+function showTab(id, element) {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(x => x.classList.remove('active'));
+    
+    document.getElementById(id).classList.add('active');
+    if (element) {
+        element.classList.add('active');
+    }
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+    let fInput = document.getElementById('fecha');
+    if (fInput) fInput.value = new Date().toISOString().slice(0, 10);
+    const inputElement = document.querySelector('#galeriaInputFoto');
+    if (inputElement) {
+        pondGaleria = FilePond.create(inputElement, {
+            allowMultiple: true,
+            allowReplace: false,
+            maxFiles: 100,
+            labelIdle: 'Toca para agregar fotos'
+        });
+    }
+    cargarNoticiasFirestore();
+    cargarGaleriaFotos();
+    cargarGaleriaVideos();
+    calcularEspacioUsado();
+    auth.onAuthStateChanged(user => {
+        if (user) {
+            esAdmin = true;
+            document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'block');
+            document.getElementById('loginSection').style.display = 'none';
+            document.getElementById('logoutBtn').style.display = 'block';
+            calcularEspacioUsado();
+        } else {
+            esAdmin = false;
+            document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
+            document.getElementById('loginSection').style.display = 'block';
+            document.getElementById('logoutBtn').style.display = 'none';
+        }
+        cargarNoticiasFirestore();
+        cargarGaleriaFotos();
+        cargarGaleriaVideos();
+    });
+    iniciarFinanzas();
+});
+
+function loginAdmin() {
+    let email = document.getElementById('adminEmail').value.trim();
+    let pass = document.getElementById('adminPass').value;
+    
+    if (!email || !pass) {
+        alert("Por favor ingresa tu correo y contraseña.");
+        return;
+    }
+    
+    auth.signInWithEmailAndPassword(email, pass)
+        .then(() => alert("¡Sesión iniciada con éxito!"))
+        .catch(error => alert("Error al iniciar sesión: " + error.message));
+}
+
+function logoutAdmin() {
+    if (confirm("¿Estás seguro de que deseas salir de la aplicación?")) {
+        auth.signOut().then(() => {
+            if (navigator.app && typeof navigator.app.exitApp === 'function') {
+                navigator.app.exitApp();
+            } else if (window.opener) {
+                window.close();
+            } else {
+                window.location.href = "about:blank";
+                window.close();
+            }
+        }).catch(error => {
+            alert("Error al salir: " + error.message);
+        });
+    }
+}
+
+// ---------------- MÓDULO DE FINANZAS DESDE GOOGLE DRIVE ----------------
+function iniciarFinanzas() {
+    try {
+        const mesSelector = document.getElementById('mesSelector');
+        if (!mesSelector) return;
+
+        mesSelector.innerHTML = '';
+        const mesesNombres = {
+            "10": "Octubre 2025", "11": "Noviembre 2025", "12": "Diciembre 2025",
+            "01": "Enero 2026", "02": "Febrero 2026", "03": "Marzo 2026",
+            "04": "Abril 2026", "05": "Mayo 2026", "06": "Junio 2026",
+            "07": "Julio 2026", "08": "Agosto 2026", "09": "Septiembre 2026",
+            "10": "Octubre 2026", "11": "Noviembre 2026", "12": "Diciembre 2026"
+        };
+        
+        let ultimaLlave = "";
+        Object.keys(datosFinancierosDrive).forEach(key => {
+            let opt = document.createElement('option');
+            opt.value = key;
+            let partes = key.split('-');
+            let mesKey = partes[1];
+            let anioKey = partes[0];
+            // Mostrar nombre amigable basado en mes y año
+            let nombreMesTexto = (mesKey === "10" && anioKey === "2025") ? "Octubre 2025" :
+                                 (mesKey === "10" && anioKey === "2026") ? "Octubre 2026" : 
+                                 (mesNombres[mesKey] || key) + " " + anioKey;
+            opt.textContent = nombreMesTexto;
+            mesSelector.appendChild(opt);
+            ultimaLlave = key;
+        });
+
+        // Seleccionar por defecto el mes más reciente (Octubre 2026)
+        if (datosFinancierosDrive["2026-10"]) {
+            mesSelector.value = "2026-10";
+        } else if (ultimaLlave) {
+            mesSelector.value = ultimaLlave;
+        }
+
+        mesSelector.addEventListener('change', () => {
+            actualizarDatosFinancierosMes(mesSelector.value);
+        });
+
+        actualizarDatosFinancierosMes(mesSelector.value);
+    } catch (e) {
+        console.error("Error al iniciar finanzas:", e);
+    }
+}
+
+function actualizarDatosFinancierosMes(periodo) {
+    let datos = datosFinancierosDrive[periodo] || { ingresos: 0, egresos: 0, saldoMes: 0, saldoInicial: 0 };
+    
+    let ingresosMes = datos.ingresos;
+    let egresosMes = datos.egresos;
+    let superavit = datos.saldoMes;
+    let saldoInicial = datos.saldoInicial;
+    let saldoFinal = saldoInicial + superavit;
+
+    // Actualizar tarjetas de control
+    document.getElementById('ingresos').innerText = `C$ ${ingresosMes.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+    document.getElementById('egresos').innerText = `C$ ${egresosMes.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+    document.getElementById('diferencia').innerText = `C$ ${superavit.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+    document.getElementById('saldoFinal').innerText = `C$ ${saldoFinal.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+
+    // Actualizar tabla financiera consolidada
+    document.getElementById('tblSaldoInicial').innerText = `C$ ${saldoInicial.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+    document.getElementById('tblIngresos').innerText = `C$ ${ingresosMes.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+    document.getElementById('tblEgresos').innerText = `C$ ${egresosMes.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+    document.getElementById('tblResultadoMes').innerText = `C$ ${superavit.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+    document.getElementById('tblSaldoFinal').innerText = `C$ ${saldoFinal.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+
+    renderizarGraficoFinanzas(ingresosMes, egresosMes, superavit);
+}
+
+function renderizarGraficoFinanzas(ingresos, egresos, resultado) {
+    const canvasEl = document.getElementById('financeChart');
+    if (!canvasEl) return;
+    const ctx = canvasEl.getContext('2d');
+
+    if (financeChartInstance) {
+        financeChartInstance.destroy();
+    }
+
+    financeChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['Ingresos', 'Egresos', 'Superávit / Déficit'],
+            datasets: [{
+                label: 'Monto en Córdobas (C$)',
+                data: [ingresos, egresos, resultado],
+                backgroundColor: ['#28a745', '#dc3545', '#003366'],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            }
+        }
+    });
+}
+
+function descargarPDF() {
+    const { jsPDF } = window.jspdf;
+    const reporte = document.getElementById('reportePDF');
+    
+    if (!reporte) return;
+
+    html2canvas(reporte, { scale: 2 }).then(canvas => {
+        let imgData = canvas.toDataURL('image/png');
+        let pdf = new jsPDF('p', 'mm', 'a4');
+        let imgWidth = 190;
+        let pageHeight = 295;
+        let imgHeight = (canvas.height * imgWidth) / canvas.width;
+        let heightLeft = imgHeight;
+        let position = 10;
+
+        pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+
+        while (heightLeft >= 0) {
+            position = heightLeft - imgHeight;
+            pdf.addPage();
+            pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+            heightLeft -= pageHeight;
+        }
+
+        pdf.save('Reporte_Financiero_Sindicato.pdf');
+    }).catch(err => {
+        alert("Error al generar el PDF: " + err.message);
+    });
+}
+
+// ---------------- CÁLCULO DE ESPACIO DE ALMACENAMIENTO ----------------
+async function calcularEspacioUsado() {
+    try {
+        let totalBytes = 0;
+        let snapshotNoticias = await db.collection('Noticias').get();
+        snapshotNoticias.forEach(doc => {
+            let img = doc.data().imagen;
+            if (img && img.startsWith('data:image')) {
+                totalBytes += Math.round((img.length * 3) / 4);
+            }
+        });
+        let snapshotGaleria = await db.collection('GaleriaFotos').get();
+        snapshotGaleria.forEach(doc => {
+            let img = doc.data().imagen;
+            if (img && img.startsWith('data:image')) {
+                totalBytes += Math.round((img.length * 3) / 4);
+            }
+        });
+        const limiteBytes = 1 * 1024 * 1024 * 1024; // 1 GB
+        let porcentaje = (totalBytes / limiteBytes) * 100;
+        if (porcentaje > 100) porcentaje = 100;
+        let mbUsados = (totalBytes / (1024 * 1024)).toFixed(2);
+        let mbDisponibles = ((limiteBytes - totalBytes) / (1024 * 1024)).toFixed(2);
+        if (mbDisponibles < 0) mbDisponibles = 0;
+        document.querySelectorAll('.storage-text').forEach(el => {
+            el.innerText = `Espacio usado: ${mbUsados} MB / Disponible: ${mbDisponibles} MB (1 GB Máx)`;
+        });
+        document.querySelectorAll('.storage-bar-fill').forEach(el => {
+            el.style.width = porcentaje + '%';
+            if (porcentaje > 80) {
+                el.style.background = '#dc3545';
+            } else {
+                el.style.background = '#28a745';
+            }
+        });
+    } catch (e) {
+        console.error("Error calculando almacenamiento:", e);
+    }
+}
+
+// ---------------- UTILIDADES E IMÁGENES ----------------
+function comprimirImagen(file, maxDimension, calidad, callback) {
+    let reader = new FileReader();
+    reader.onload = function(e) {
+        let img = new Image();
+        img.onload = function() {
+            let canvas = document.createElement('canvas');
+            let w = img.width;
+            let h = img.height;
+            if (w > h) {
+                if (w > maxDimension) {
+                    h = Math.round((h * maxDimension) / w);
+                    w = maxDimension;
+                }
+            } else {
+                if (h > maxDimension) {
+                    w = Math.round((w * maxDimension) / h);
+                    h = maxDimension;
+                }
+            }
+            canvas.width = w;
+            canvas.height = h;
+            let ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, w, h);
+            callback(canvas.toDataURL('image/jpeg', calidad));
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
+function escapeHtml(str) {
+    return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+}
+
+function limpiarFormulario() {
+    document.getElementById('titulo').value = '';
+    document.getElementById('descripcion').value = '';
+    document.getElementById('foto').value = '';
+    let fInput = document.getElementById('fecha');
+    if (fInput) fInput.value = new Date().toISOString().slice(0, 10);
+    noticiaEditandoId = null;
+    let btnPub = document.getElementById('btnPublicar');
+    if (btnPub) btnPub.innerText = 'Publicar Noticia';
+}
+
+function editarFirestore(id, titulo, fecha, descripcion) {
+    noticiaEditandoId = id;
+    document.getElementById('titulo').value = titulo;
+    document.getElementById('fecha').value = fecha;
+    document.getElementById('descripcion').value = descripcion;
+    let btnPub = document.getElementById('btnPublicar');
+    if (btnPub) btnPub.innerText = 'Guardar Cambios';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function eliminarFirestore(id) {
+    if (confirm("¿Estás seguro de eliminar esta noticia?")) {
+        db.collection('Noticias').doc(id).delete().then(() => {
+            alert("Noticia eliminada.");
+            calcularEspacioUsado();
+        }).catch(err => alert("Error: " + err.message));
+    }
+}
+
+// ---------------- NOTICIAS ----------------
+function publicar() {
+    let txtTitulo = document.getElementById('titulo').value;
+    let txtDescripcion = document.getElementById('descripcion').value;
+    let txtFecha = document.getElementById('fecha').value;
+    let fileFoto = document.getElementById('foto').files[0];
+    if (!txtTitulo && !txtDescripcion) {
+        alert("Por favor escribe un título o descripción.");
+        return;
+    }
+    if (fileFoto) {
+        comprimirImagen(fileFoto, 1000, 0.7, function(imgComprimida) {
+            guardarEnFirestore(txtTitulo, txtDescripcion, txtFecha, imgComprimida);
+        });
+    } else {
+        if (noticiaEditandoId) {
+            db.collection('Noticias').doc(noticiaEditandoId).get().then(doc => {
+                let imgExistente = doc.exists ? (doc.data().imagen || '') : '';
+                guardarEnFirestore(txtTitulo, txtDescripcion, txtFecha, imgExistente);
+            });
+        } else {
+            guardarEnFirestore(txtTitulo, txtDescripcion, txtFecha, '');
+        }
+    }
+}
+
+function guardarEnFirestore(t, d, f, img) {
+    let datosNoticia = {
+        titulo: t,
+        descripcion: d,
+        fecha: f,
+        imagen: img,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    if (noticiaEditandoId) {
+        db.collection('Noticias').doc(noticiaEditandoId).update(datosNoticia)
+        .then(() => {
+            limpiarFormulario();
+            alert("¡Noticia actualizada!");
+            calcularEspacioUsado();
+        }).catch(err => alert("Error al actualizar: " + err.message));
+    } else {
+        db.collection('Noticias').add(datosNoticia)
+        .then(() => {
+            limpiarFormulario();
+            alert("¡Noticia publicada!");
+            calcularEspacioUsado();
+        }).catch(err => alert("Error al publicar: " + err.message));
+    }
+}
+
+function cargarNoticiasFirestore() {
+    db.collection('Noticias').orderBy('timestamp', 'desc').onSnapshot(snapshot => {
+        let c = document.getElementById('lista');
+        if (!c) return;
+        c.innerHTML = ''; 
+        
+        snapshot.forEach(doc => {
+            let id = doc.id;
+            let data = doc.data();
+            
+            let n = document.createElement('div');
+            n.className = 'news-card';
+            
+            let htmlContent = `<h3>${escapeHtml(data.titulo || '')}</h3>
+                               <small><i class="fa-regular fa-calendar"></i> ${escapeHtml(data.fecha || '')}</small>
+                               <p style="white-space: pre-wrap;">${escapeHtml(data.descripcion || '')}</p>`;
+            
+            if (data.imagen) {
+                htmlContent += `<img id="img_${id}" src="${data.imagen}" style="max-width:100%; border-radius:8px; margin-top:8px; cursor:pointer;" onclick="abrirVisorUnica('${data.imagen}', '${escapeHtml(data.titulo || '')}')">`;
+            }
+            if (esAdmin) {
+                htmlContent += `<div style="margin-top:10px;">
+                    <button style="width:auto; padding:6px 12px; margin-right:5px; background:#ffc107; color:#000" class="btn-editar">Editar</button>
+                    <button style="width:auto; padding:6px 12px; background:#dc3545" onclick="eliminarFirestore('${id}')">Eliminar</button>
+                </div>`;
+            }
+            n.innerHTML = htmlContent;
+            
+            if (esAdmin) {
+                let btnEdit = n.querySelector('.btn-editar');
+                if (btnEdit) {
+                    btnEdit.addEventListener('click', () => {
+                        editarFirestore(id, data.titulo || '', data.fecha || '', data.descripcion || '');
+                    });
+                }
+            }
+            c.appendChild(n); 
+        });
+    }, error => console.error("Error datos: ", error.message));
+}
+
+// ---------------- GALERÍA DE FOTOS ----------------
+function subirFotoGaleria() {
+    let tituloFoto = document.getElementById('galeriaTitulo').value.trim();
+    
+    if (!pondGaleria) {
+        alert("El selector de fotos no se ha cargado correctamente.");
+        return;
+    }
+    const items = pondGaleria.getFiles();
+    if (!items || items.length === 0) {
+        alert("Por favor selecciona al menos una foto desde tu celular.");
+        return;
+    }
+    let nombreBase = tituloFoto || 'Actividad Sindicato';
+    let total = items.length;
+    let procesadas = 0;
+    let guardadasExito = 0;
+    let btnSubir = document.getElementById("btnSubirGaleria");
+    if (btnSubir) btnSubir.disabled = true;
+    items.forEach((item, index) => {
+        let fileObj = item.file;
+        if (!fileObj) {
+            procesadas++;
+            verificarFin();
+            return;
+        }
+        comprimirImagen(fileObj, 1200, 0.75, function(imgComprimida) {
+            let nombreFinal = total > 1 ? `${nombreBase} (${index + 1})` : nombreBase;
+            
+            db.collection('GaleriaFotos').add({
+                titulo: nombreFinal,
+                imagen: imgComprimida,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            }).then(() => {
+                guardadasExito++;
+                procesadas++;
+                verificarFin();
+            }).catch(err => {
+                console.error("Error al subir foto: ", err);
+                procesadas++;
+                verificarFin();
+            });
+        });
+    });
+    function verificarFin() {
+        if (procesadas === total) {
+            document.getElementById('galeriaTitulo').value = '';
+            pondGaleria.removeFiles();
+            if (btnSubir) btnSubir.disabled = false;
+            alert(`¡Se procesaron ${guardadasExito} de ${total} fotos con éxito!`);
+            calcularEspacioUsado();
+        }
+    }
+}
+
+function cargarGaleriaFotos() {
+    db.collection('GaleriaFotos').orderBy('timestamp', 'desc').onSnapshot(snapshot => {
+        let grid = document.getElementById('galeriaFotosGrid');
+        if (!grid) return;
+        grid.innerHTML = '';
+        galeriaFotosArray = [];
+        if (snapshot.empty) {
+            grid.innerHTML = '<p style="color:#666; font-size:0.9rem; grid-column:1/-1;">Aún no hay fotos cargadas en esta sección.</p>';
+            return;
+        }
+        let idx = 0;
+        snapshot.forEach(doc => {
+            let id = doc.id;
+            let data = doc.data();
+            galeriaFotosArray.push({
+                url: data.imagen,
+                titulo: data.titulo || 'Foto Sindicato'
+            });
+            let currentIdx = idx;
+            let card = document.createElement('div');
+            card.className = 'gallery-card';
+            let html = `<img src="${data.imagen}" alt="Foto Sindicato" onclick="abrirVisorGaleria(${currentIdx})">
+                        <div class="info" onclick="abrirVisorGaleria(${currentIdx})">
+                            ${escapeHtml(data.titulo || '')}
+                        </div>`;
+            if (esAdmin) {
+                html += `<button style="background:#dc3545; padding:6px; font-size:0.75rem; border-radius:0 0 8px 8px; border:none;" onclick="eliminarFotoGaleria('${id}')"><i class="fa-solid fa-trash"></i> Eliminar</button>`;
+            }
+            card.innerHTML = html;
+            grid.appendChild(card);
+            idx++;
+        });
+    });
+}
+
+function eliminarFotoGaleria(id) {
+    if (confirm("¿Deseas eliminar esta foto de la galería?")) {
+        db.collection('GaleriaFotos').doc(id).delete().then(() => {
+            calcularEspacioUsado();
+        }).catch(err => alert("Error: " + err.message));
+    }
+}
+
+// ---------------- CONVERSOR Y GESTIÓN DE VIDEOS ----------------
+function limpiarYFormatearUrlVideo(url) {
+    if (!url) return "";
+    let embedUrl = url.trim();
+    if (embedUrl.includes("youtube.com/watch?v=")) {
+        let videoId = embedUrl.split("v=")[1]?.split("&")[0];
+        if (videoId) return `https://www.youtube.com/embed/${videoId}`;
+    } else if (embedUrl.includes("youtu.be/")) {
+        let videoId = embedUrl.split("youtu.be/")[1]?.split("?")[0];
+        if (videoId) return `https://www.youtube.com/embed/${videoId}`;
+    } else if (embedUrl.includes("youtube.com/shorts/")) {
+        let videoId = embedUrl.split("shorts/")[1]?.split("?")[0];
+        if (videoId) return `https://www.youtube.com/embed/${videoId}`;
+    }
+    return embedUrl;
+}
+
+function agregarVideoALista() {
+    let txtTitulo = document.getElementById('videoTitulo').value.trim();
+    let urlVideo = document.getElementById('videoUrlInput').value.trim();
+    if (!urlVideo) {
+        alert("Por favor ingresa un enlace de video válido.");
+        return;
+    }
+    let embedUrl = limpiarYFormatearUrlVideo(urlVideo);
+    listaVideosPendientes.push({
+        titulo: txtTitulo || 'Video Informativo',
+        url: embedUrl
+    });
+    document.getElementById('videoTitulo').value = '';
+    document.getElementById('videoUrlInput').value = '';
+    actualizarPreListaVideosUI();
+}
+
+function actualizarPreListaVideosUI() {
+    let container = document.getElementById('preListaVideosContainer');
+    let ul = document.getElementById('preListaVideosUl');
+    let cant = document.getElementById('cantVideosPre');
+    let btnGuardar = document.getElementById('btnGuardarLoteVideos');
+    if (!container || !ul) return;
+    if (listaVideosPendientes.length === 0) {
+        container.style.display = 'none';
+        if (btnGuardar) btnGuardar.style.display = 'none';
+        return;
+    }
+    container.style.display = 'block';
+    if (btnGuardar) btnGuardar.style.display = 'block';
+    cant.innerText = listaVideosPendientes.length;
+    ul.innerHTML = '';
+    listaVideosPendientes.forEach((v, idx) => {
+        let li = document.createElement('li');
+        li.style.marginBottom = '4px';
+        li.innerHTML = `<strong>${escapeHtml(v.titulo)}</strong> - <small style="color:#666;">${escapeHtml(v.url)}</small> 
+                        <span onclick="eliminarDePreLista(${idx})" style="color:red; cursor:pointer; margin-left:8px;"><i class="fa-solid fa-trash"></i></span>`;
+        ul.appendChild(li);
+    });
+}
+
+function eliminarDePreLista(index) {
+    listaVideosPendientes.splice(index, 1);
+    actualizarPreListaVideosUI();
+}
+
+async function subirLoteVideos() {
+    if (listaVideosPendientes.length === 0) return;
+    let btnGuardar = document.getElementById('btnGuardarLoteVideos');
+    if (btnGuardar) btnGuardar.disabled = true;
+    try {
+        let batch = db.batch();
+        listaVideosPendientes.forEach(v => {
+            let docRef = db.collection('GaleriaVideos').doc();
+            batch.set(docRef, {
+                titulo: v.titulo,
+                url: v.url,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        });
+        await batch.commit();
+        alert(`¡Se publicaron ${listaVideosPendientes.length} video(s) con éxito en Firebase!`);
+        listaVideosPendientes = [];
+        actualizarPreListaVideosUI();
+    } catch (e) {
+        alert("Error al guardar lote de videos: " + e.message);
+    } finally {
+        if (btnGuardar) btnGuardar.disabled = false;
+    }
+}
+
+function cargarGaleriaVideos() {
+    db.collection('GaleriaVideos').orderBy('timestamp', 'desc').onSnapshot(snapshot => {
+        let container = document.getElementById('listaVideos');
+        if (!container) return;
+        container.innerHTML = '';
+        if (snapshot.empty) {
+            container.innerHTML = '<p style="color:#666; font-size:0.9rem;">No hay videos subidos aún.</p>';
+            return;
+        }
+        snapshot.forEach(doc => {
+            let id = doc.id;
+            let data = doc.data();
+            let card = document.createElement('div');
+            card.className = 'video-card';
+            let html = `<h4 style="margin:0 0 8px 0; color:#003366;">${escapeHtml(data.titulo || 'Video')}</h4>
+                        <div class="video-container">
+                            <iframe src="${data.url}" allowfullscreen></iframe>
+                        </div>`;
+            if (esAdmin) {
+                html += `<button style="background:#dc3545; padding:6px 12px; margin-top:8px; width:auto;" onclick="eliminarVideo('${id}')"><i class="fa-solid fa-trash"></i> Eliminar Video</button>`;
+            }
+            card.innerHTML = html;
+            container.appendChild(card);
+        });
+    });
+}
+
+function eliminarVideo(id) {
+    if (confirm("¿Deseas eliminar este video?")) {
+        db.collection('GaleriaVideos').doc(id).delete().catch(err => alert("Error: " + err.message));
+    }
+}
+
+// ---------------- VISOR Y LIGHTBOX ----------------
+function abrirVisorUnica(url, titulo) {
+    galeriaFotosArray = [{ url: url, titulo: titulo }];
+    abrirVisorGaleria(0);
+}
+
+function abrirVisorGaleria(index) {
+    if (!galeriaFotosArray || galeriaFotosArray.length === 0) return;
+    indiceFotoActual = index;
+    let modal = document.getElementById('lightboxModal');
+    let img = document.getElementById('lightboxImg');
+    let cap = document.getElementById('lightboxCaption');
+    if (modal && img) {
+        img.src = galeriaFotosArray[indiceFotoActual].url;
+        if (cap) cap.innerText = galeriaFotosArray[indiceFotoActual].titulo || '';
+        modal.style.display = 'flex';
+    }
+}
+
+function cerrarVisor() {
+    let modal = document.getElementById('lightboxModal');
+    if (modal) modal.style.display = 'none';
+}
+
+function cambiarFotoVisor(dir) {
+    if (!galeriaFotosArray || galeriaFotosArray.length === 0) return;
+    indiceFotoActual += dir;
+    if (indiceFotoActual < 0) indiceFotoActual = galeriaFotosArray.length - 1;
+    if (indiceFotoActual >= galeriaFotosArray.length) indiceFotoActual = 0;
+    let img = document.getElementById('lightboxImg');
+    let cap = document.getElementById('lightboxCaption');
+    if (img) img.src = galeriaFotosArray[indiceFotoActual].url;
+    if (cap) cap.innerText = galeriaFotosArray[indiceFotoActual].titulo || '';
+}
+</script>
+</head>
+<body>
+
+<div class="app-header">
+    <h1>Sindicato Juan Flores Vivas</h1>
+</div>
+
+<!-- NAVEGACIÓN SUPERIOR / PESTAÑAS -->
+<div id="tabNoticias" class="tab active">
+    <!-- PANEL ADMINISTRADOR DE NOTICIAS -->
+    <div class="admin-only card-section">
+        <h3><i class="fa-solid fa-pen-to-square"></i> Publicar / Editar Noticia</h3>
+        <input type="text" id="titulo" placeholder="Título de la noticia">
+        <input type="date" id="fecha">
+        <textarea id="descripcion" rows="4" placeholder="Escribe el contenido aquí..."></textarea>
+        <input type="file" id="foto" accept="image/*">
+        <button id="btnPublicar" onclick="publicar()">Publicar Noticia</button>
+    </div>
+    
+    <div class="card-section">
+        <h2>Últimas Noticias</h2>
+        <div id="lista"></div>
+    </div>
+</div>
+
+<div id="tabFinanzas" class="tab">
+    <div class="card-section" id="reportePDF">
+        <h2>Resumen Financiero</h2>
+        <label style="font-weight:bold; font-size:0.9rem;">Seleccionar Mes:</label>
+        <select id="mesSelector"></select>
+
+        <div class="summary">
+            <div class="card-finance">
+                <h3>Ingresos</h3>
+                <p id="ingresos" class="text-positive">C$ 0.00</p>
+            </div>
+            <div class="card-finance">
+                <h3>Egresos</h3>
+                <p id="egresos" class="text-negative">C$ 0.00</p>
+            </div>
+            <div class="card-finance">
+                <h3>Superávit/Déficit</h3>
+                <p id="diferencia">C$ 0.00</p>
+            </div>
+            <div class="card-finance">
+                <h3>Saldo Acumulado</h3>
+                <p id="saldoFinal">C$ 0.00</p>
+            </div>
+        </div>
+
+        <div class="chart-wrapper">
+            <canvas id="financeChart"></canvas>
+        </div>
+
+        <table class="financial-table">
+            <thead>
+                <tr>
+                    <th>Concepto</th>
+                    <th class="text-right">Monto (C$)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Saldo Inicial</td>
+                    <td id="tblSaldoInicial" class="text-right">C$ 0.00</td>
+                </tr>
+                <tr>
+                    <td>(+) Ingresos del Mes</td>
+                    <td id="tblIngresos" class="text-right text-positive">C$ 0.00</td>
+                </tr>
+                <tr>
+                    <td>(-) Egresos del Mes</td>
+                    <td id="tblEgresos" class="text-right text-negative">C$ 0.00</td>
+                </tr>
+                <tr class="highlight-row">
+                    <td>Resultado del Mes</td>
+                    <td id="tblResultadoMes" class="text-right">C$ 0.00</td>
+                </tr>
+                <tr class="total-row">
+                    <td>Saldo Final Disponible</td>
+                    <td id="tblSaldoFinal" class="text-right">C$ 0.00</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    
+    <button onclick="descargarPDF()"><i class="fa-solid fa-file-pdf"></i> Descargar Reporte en PDF</button>
+</div>
+
+<div id="tabGaleria" class="tab">
+    <div class="admin-only card-section">
+        <h3><i class="fa-solid fa-upload"></i> Subir Fotos a la Galería</h3>
+        <input type="text" id="galeriaTitulo" placeholder="Título para la(s) foto(s)">
+        <input type="file" id="galeriaInputFoto" multiple accept="image/*">
+        <button id="btnSubirGaleria" onclick="subirFotoGaleria()">Subir Foto(s)</button>
+    </div>
+    <div class="card-section">
+        <h2>Galería de Fotos</h2>
+        <div id="galeriaFotosGrid" class="gallery-grid"></div>
+    </div>
+</div>
+
+<div id="tabVideos" class="tab">
+    <div class="admin-only card-section">
+        <h3><i class="fa-solid fa-video"></i> Publicar Video</h3>
+        <input type="text" id="videoTitulo" placeholder="Título del video">
+        <input type="text" id="videoUrlInput" placeholder="Enlace de YouTube (Ej: https://youtu.be/...)">
+        <button onclick="agregarVideoALista()"><i class="fa-solid fa-plus"></i> Añadir a la Lista</button>
+        
+        <div id="preListaVideosContainer" style="display:none; margin-top:12px; background:#f8f9fa; padding:10px; border-radius:8px;">
+            <p style="margin:0 0 50px 0; font-size:0.85rem; font-weight:bold;">Videos Pendientes (<span id="cantVideosPre">0</span>):</p>
+            <ul id="preListaVideosUl" style="padding-left:18px; margin:0; font-size:0.85rem;"></ul>
+        </div>
+        
+        <button id="btnGuardarLoteVideos" onclick="subirLoteVideos()" style="display:none; margin-top:10px; background:#28a745;">Guardar Todo en Firebase</button>
+    </div>
+    
+    <div class="card-section">
+        <h2>Galería de Videos</h2>
+        <div id="listaVideos" class="video-list"></div>
+    </div>
+</div>
+
+<div id="tabAdmin" class="tab">
+    <div id="loginSection" class="login-container">
+        <h3>Iniciar Sesión Administrador</h3>
+        <input type="email" id="adminEmail" placeholder="Correo electrónico">
+        <input type="password" id="adminPass" placeholder="Contraseña">
+        <button onclick="loginAdmin()">Entrar</button>
+    </div>
+    
+    <div class="admin-only card-section">
+        <h3>Panel de Control</h3>
+        <div class="storage-meter">
+            <span class="storage-text">Calculando almacenamiento...</span>
+            <div class="storage-bar-bg">
+                <div class="storage-bar-fill"></div>
+            </div>
+        </div>
+        <button onclick="limpiarFotosAntiguas()" style="background:#dc3545; margin-bottom:10px;"><i class="fa-solid fa-trash-can"></i> Limpiar Contenido Antiguo (>6 Meses)</button>
+        <button id="logoutBtn" onclick="logoutAdmin()" style="background:#6c757d;"><i class="fa-solid fa-right-from-bracket"></i> Cerrar Sesión</button>
+    </div>
+</div>
+
+<!-- NAVEGACIÓN INFERIOR (BOTTOM NAV) -->
+<div class="bottom-nav">
+    <div class="nav-item active" onclick="showTab('tabNoticias', this)">
+        <i class="fa-solid fa-newspaper"></i>
+        <span>Noticias</span>
+    </div>
+    <div class="nav-item" onclick="showTab('tabFinanzas', this)">
+        <i class="fa-solid fa-chart-line"></i>
+        <span>Finanzas</span>
+    </div>
+    <div class="nav-item" onclick="showTab('tabGaleria', this)">
+        <i class="fa-solid fa-images"></i>
+        <span>Fotos</span>
+    </div>
+    <div class="nav-item" onclick="showTab('tabVideos', this)">
+        <i class="fa-solid fa-circle-play"></i>
+        <span>Videos</span>
+    </div>
+    <div class="nav-item" onclick="showTab('tabAdmin', this)">
+        <i class="fa-solid fa-user-lock"></i>
+        <span>Admin</span>
+    </div>
+</div>
+
+<!-- LIGHTBOX MODAL PARA FOTOS -->
+<div id="lightboxModal" class="lightbox-modal">
+    <span class="lightbox-close" onclick="cerrarVisor()">&times;</span>
+    <button class="lightbox-btn lightbox-prev" onclick="cambiarFotoVisor(-1)"><i class="fa-solid fa-chevron-left"></i></button>
+    <img id="lightboxImg" src="" alt="Ampliada">
+    <div id="lightboxCaption" class="lightbox-caption"></div>
+    <button class="lightbox-btn lightbox-next" onclick="cambiarFotoVisor(1)"><i class="fa-solid fa-chevron-right"></i></button>
+</div>
+
+</body>
+</html>
