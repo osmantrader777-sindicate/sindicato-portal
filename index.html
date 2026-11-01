@@ -358,8 +358,7 @@ iframe {
     color: #dc3545;
     font-weight: bold;
 }
-</style>
-<script>
+</style><script>
 // Firebase Config
 const firebaseConfig = {
   apiKey: "AIzaSyBXrIndvikCMg47NfN6NzmB3lYpui2AfWQ",
@@ -394,7 +393,7 @@ const datosFinancierosDrive = {
     "2026-07": { ingresos: 30510.41, egresos: 0.00, saldoMes: 30510.41, saldoInicial: 40610.16 },
     "2026-08": { ingresos: 33586.11, egresos: 5000.00, saldoMes: 28586.11, saldoInicial: 71120.57 },
     "2026-09": { ingresos: 31986.11, egresos: 5800.00, saldoMes: 26186.11, saldoInicial: 99706.68 },
-    "2026-10": { ingresos: 0.00, egresos: 0.00, saldoMes: 0.00, saldoInicial: 125892.79 } // <--- Actualiza aquí tus ingresos y egresos de Octubre
+    "2026-10": { ingresos: 0.00, egresos: 0.00, saldoMes: 0.00, saldoInicial: 125892.79 }
 };
 
 function showTab(id, element) {
@@ -474,7 +473,7 @@ function logoutAdmin() {
     }
 }
 
-// ---------------- MÓDULO DE FINANZAS CONECTADO A GOOGLE DRIVE ----------------
+// ---------------- MÓDULO DE FINANZAS ----------------
 function iniciarFinanzas() {
     try {
         const mesSelector = document.getElementById('mesSelector');
@@ -488,11 +487,10 @@ function iniciarFinanzas() {
             "10": "Octubre", "11": "Noviembre", "12": "Diciembre"
         };
         
-        // Poblar el selector correctamente combinando año y mes (evita conflictos entre 2025 y 2026)
         Object.keys(datosFinancierosDrive).forEach(key => {
             let opt = document.createElement('option');
             opt.value = key;
-            let partes = key.split('-'); // ej: ["2026", "10"]
+            let partes = key.split('-');
             let anio = partes[0];
             let mesNum = partes[1];
             let nombreMes = mesesNombres[mesNum] || mesNum;
@@ -500,7 +498,6 @@ function iniciarFinanzas() {
             mesSelector.appendChild(opt);
         });
 
-        // Seleccionar por defecto el mes más reciente (Octubre 2026)
         mesSelector.value = "2026-10";
 
         mesSelector.addEventListener('change', () => {
@@ -522,13 +519,11 @@ function actualizarDatosFinancierosMes(periodo) {
     let saldoInicial = datos.saldoInicial;
     let saldoFinal = saldoInicial + superavit;
 
-    // Actualizar tarjetas de control
     document.getElementById('ingresos').innerText = `C$ ${ingresosMes.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
     document.getElementById('egresos').innerText = `C$ ${egresosMes.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
     document.getElementById('diferencia').innerText = `C$ ${superavit.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
     document.getElementById('saldoFinal').innerText = `C$ ${saldoFinal.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
 
-    // Actualizar tabla financiera consolidada
     document.getElementById('tblSaldoInicial').innerText = `C$ ${saldoInicial.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
     document.getElementById('tblIngresos').innerText = `C$ ${ingresosMes.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
     document.getElementById('tblEgresos').innerText = `C$ ${egresosMes.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
@@ -599,7 +594,7 @@ function descargarPDF() {
     });
 }
 
-// ---------------- CÁLCULO DE ESPACIO DE ALMACENAMIENTO ----------------
+// ---------------- ALMACENAMIENTO Y LIMPIEZA ----------------
 async function calcularEspacioUsado() {
     try {
         let totalBytes = 0;
@@ -617,7 +612,7 @@ async function calcularEspacioUsado() {
                 totalBytes += Math.round((img.length * 3) / 4);
             }
         });
-        const limiteBytes = 1 * 1024 * 1024 * 1024; // 1 GB
+        const limiteBytes = 1 * 1024 * 1024 * 1024;
         let porcentaje = (totalBytes / limiteBytes) * 100;
         if (porcentaje > 100) porcentaje = 100;
         let mbUsados = (totalBytes / (1024 * 1024)).toFixed(2);
@@ -639,7 +634,6 @@ async function calcularEspacioUsado() {
     }
 }
 
-// ---------------- LIMPIEZA AUTOMÁTICA DE FOTOS VIEJAS (>6 MESES) ----------------
 async function limpiarFotosAntiguas() {
     const confirmacion = confirm("¿Deseas buscar y borrar automáticamente todas las publicaciones e imágenes de más de 6 meses de antigüedad?");
     if (!confirmacion) return;
@@ -865,7 +859,7 @@ function eliminarFotoGaleria(id) {
     }
 }
 
-// ---------------- CONVERSOR Y GESTIÓN DE VIDEOS ----------------
+// ---------------- GESTIÓN Y CONVERSOR DE VIDEOS ----------------
 function limpiarYFormatearUrlVideo(url) {
     if (!url) return "";
     let embedUrl = url.trim();
@@ -968,4 +962,301 @@ function cargarGaleriaVideos() {
             let urlEmbed = limpiarYFormatearUrlVideo(data.url || '');
             
             let card = document.createElement('div');
-            card.className = 'video-
+            card.className = 'video-card';
+            let html = `<h4 style="margin:0 0 8px 0; color:#003366;">${escapeHtml(data.titulo || 'Video')}</h4>
+                        <div class="video-container">
+                            <iframe src="${urlEmbed}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                        </div>`;
+            if (esAdmin) {
+                html += `<button style="background:#dc3545; padding:6px 12px; margin-top:8px; width:auto;" onclick="eliminarVideo('${id}')"><i class="fa-solid fa-trash"></i> Eliminar Video</button>`;
+            }
+            card.innerHTML = html;
+            container.appendChild(card);
+        });
+    });
+}
+
+function eliminarVideo(id) {
+    if (confirm("¿Deseas eliminar este video?")) {
+        db.collection('GaleriaVideos').doc(id).delete().catch(err => alert("Error: " + err.message));
+    }
+}
+
+// ---------------- UTILIDADES Y VISOR ----------------
+function comprimirImagen(file, maxDimension, calidad, callback) {
+    let reader = new FileReader();
+    reader.onload = function(e) {
+        let img = new Image();
+        img.onload = function() {
+            let canvas = document.createElement('canvas');
+            let w = img.width;
+            let h = img.height;
+            if (w > h) {
+                if (w > maxDimension) {
+                    h = Math.round((h * maxDimension) / w);
+                    w = maxDimension;
+                }
+            } else {
+                if (h > maxDimension) {
+                    w = Math.round((w * maxDimension) / h);
+                    h = maxDimension;
+                }
+            }
+            canvas.width = w;
+            canvas.height = h;
+            let ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, w, h);
+            callback(canvas.toDataURL('image/jpeg', calidad));
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
+function escapeHtml(str) {
+    return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+}
+
+function limpiarFormulario() {
+    document.getElementById('titulo').value = '';
+    document.getElementById('descripcion').value = '';
+    document.getElementById('foto').value = '';
+    let fInput = document.getElementById('fecha');
+    if (fInput) fInput.value = new Date().toISOString().slice(0, 10);
+    noticiaEditandoId = null;
+    let btnPub = document.getElementById('btnPublicar');
+    if (btnPub) btnPub.innerText = 'Publicar Noticia';
+}
+
+function editarFirestore(id, titulo, fecha, descripcion) {
+    noticiaEditandoId = id;
+    document.getElementById('titulo').value = titulo;
+    document.getElementById('fecha').value = fecha;
+    document.getElementById('descripcion').value = descripcion;
+    let btnPub = document.getElementById('btnPublicar');
+    if (btnPub) btnPub.innerText = 'Guardar Cambios';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function eliminarFirestore(id) {
+    if (confirm("¿Estás seguro de eliminar esta noticia?")) {
+        db.collection('Noticias').doc(id).delete().then(() => {
+            alert("Noticia eliminada.");
+            calcularEspacioUsado();
+        }).catch(err => alert("Error: " + err.message));
+    }
+}
+
+function abrirVisorUnica(url, titulo) {
+    galeriaFotosArray = [{ url: url, titulo: titulo }];
+    abrirVisorGaleria(0);
+}
+
+function abrirVisorGaleria(index) {
+    if (!galeriaFotosArray || galeriaFotosArray.length === 0) return;
+    indiceFotoActual = index;
+    let modal = document.getElementById('lightboxModal');
+    let img = document.getElementById('lightboxImg');
+    let cap = document.getElementById('lightboxCaption');
+    if (modal && img) {
+        img.src = galeriaFotosArray[indiceFotoActual].url;
+        if (cap) cap.innerText = galeriaFotosArray[indiceFotoActual].titulo || '';
+        modal.style.display = 'flex';
+    }
+}
+
+function cerrarVisor() {
+    let modal = document.getElementById('lightboxModal');
+    if (modal) modal.style.display = 'none';
+}
+
+function cambiarFotoVisor(dir) {
+    if (!galeriaFotosArray || galeriaFotosArray.length === 0) return;
+    indiceFotoActual += dir;
+    if (indiceFotoActual < 0) indiceFotoActual = galeriaFotosArray.length - 1;
+    if (indiceFotoActual >= galeriaFotosArray.length) indiceFotoActual = 0;
+    let img = document.getElementById('lightboxImg');
+    let cap = document.getElementById('lightboxCaption');
+    if (img) img.src = galeriaFotosArray[indiceFotoActual].url;
+    if (cap) cap.innerText = galeriaFotosArray[indiceFotoActual].titulo || '';
+}
+</script>
+</head>
+<body>
+
+<div class="app-header">
+    <h1>Sindicato Juan Flores Vivas</h1>
+</div>
+
+<!-- NAVEGACIÓN SUPERIOR / PESTAÑAS -->
+<div id="tabNoticias" class="tab active">
+    <!-- PANEL ADMINISTRADOR DE NOTICIAS -->
+    <div class="admin-only card-section">
+        <h3><i class="fa-solid fa-pen-to-square"></i> Publicar / Editar Noticia</h3>
+        <input type="text" id="titulo" placeholder="Título de la noticia">
+        <input type="date" id="fecha">
+        <textarea id="descripcion" rows="4" placeholder="Escribe el contenido aquí..."></textarea>
+        <input type="file" id="foto" accept="image/*">
+        <button id="btnPublicar" onclick="publicar()">Publicar Noticia</button>
+    </div>
+    
+    <div class="card-section">
+        <h2>Últimas Noticias</h2>
+        <div id="lista"></div>
+    </div>
+</div>
+
+<div id="tabFinanzas" class="tab">
+    <div class="card-section" id="reportePDF">
+        <h2>Resumen Financiero</h2>
+        <label style="font-weight:bold; font-size:0.9rem;">Seleccionar Mes:</label>
+        <select id="mesSelector"></select>
+
+        <div class="summary">
+            <div class="card-finance">
+                <h3>Ingresos</h3>
+                <p id="ingresos" class="text-positive">C$ 0.00</p>
+            </div>
+            <div class="card-finance">
+                <h3>Egresos</h3>
+                <p id="egresos" class="text-negative">C$ 0.00</p>
+            </div>
+            <div class="card-finance">
+                <h3>Superávit/Déficit</h3>
+                <p id="diferencia">C$ 0.00</p>
+            </div>
+            <div class="card-finance">
+                <h3>Saldo Acumulado</h3>
+                <p id="saldoFinal">C$ 0.00</p>
+            </div>
+        </div>
+
+        <div class="chart-wrapper">
+            <canvas id="financeChart"></canvas>
+        </div>
+
+        <table class="financial-table">
+            <thead>
+                <tr>
+                    <th>Concepto</th>
+                    <th class="text-right">Monto (C$)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Saldo Inicial</td>
+                    <td id="tblSaldoInicial" class="text-right">C$ 0.00</td>
+                </tr>
+                <tr>
+                    <td>(+) Ingresos del Mes</td>
+                    <td id="tblIngresos" class="text-right text-positive">C$ 0.00</td>
+                </tr>
+                <tr>
+                    <td>(-) Egresos del Mes</td>
+                    <td id="tblEgresos" class="text-right text-negative">C$ 0.00</td>
+                </tr>
+                <tr class="highlight-row">
+                    <td>Resultado del Mes</td>
+                    <td id="tblResultadoMes" class="text-right">C$ 0.00</td>
+                </tr>
+                <tr class="total-row">
+                    <td>Saldo Final Disponible</td>
+                    <td id="tblSaldoFinal" class="text-right">C$ 0.00</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    
+    <button onclick="descargarPDF()"><i class="fa-solid fa-file-pdf"></i> Descargar Reporte en PDF</button>
+</div>
+
+<div id="tabGaleria" class="tab">
+    <div class="admin-only card-section">
+        <h3><i class="fa-solid fa-upload"></i> Subir Fotos a la Galería</h3>
+        <input type="text" id="galeriaTitulo" placeholder="Título para la(s) foto(s)">
+        <input type="file" id="galeriaInputFoto" multiple accept="image/*">
+        <button id="btnSubirGaleria" onclick="subirFotoGaleria()">Subir Foto(s)</button>
+    </div>
+    <div class="card-section">
+        <h2>Galería de Fotos</h2>
+        <div id="galeriaFotosGrid" class="gallery-grid"></div>
+    </div>
+</div>
+
+<div id="tabVideos" class="tab">
+    <div class="admin-only card-section">
+        <h3><i class="fa-solid fa-video"></i> Publicar Video</h3>
+        <input type="text" id="videoTitulo" placeholder="Título del video">
+        <input type="text" id="videoUrlInput" placeholder="Enlace de YouTube (Ej: https://youtu.be/...)">
+        <button onclick="agregarVideoALista()"><i class="fa-solid fa-plus"></i> Añadir a la Lista</button>
+        
+        <div id="preListaVideosContainer" style="display:none; margin-top:12px; background:#f8f9fa; padding:10px; border-radius:8px;">
+            <p style="margin:0 0 5px 0; font-size:0.85rem; font-weight:bold;">Videos Pendientes (<span id="cantVideosPre">0</span>):</p>
+            <ul id="preListaVideosUl" style="padding-left:18px; margin:0; font-size:0.85rem;"></ul>
+        </div>
+        
+        <button id="btnGuardarLoteVideos" onclick="subirLoteVideos()" style="display:none; margin-top:10px; background:#28a745;">Guardar Todo en Firebase</button>
+    </div>
+    
+    <div class="card-section">
+        <h2>Galería de Videos</h2>
+        <div id="listaVideos" class="video-list"></div>
+    </div>
+</div>
+
+<div id="tabAdmin" class="tab">
+    <div id="loginSection" class="login-container">
+        <h3>Iniciar Sesión Administrador</h3>
+        <input type="email" id="adminEmail" placeholder="Correo electrónico">
+        <input type="password" id="adminPass" placeholder="Contraseña">
+        <button onclick="loginAdmin()">Entrar</button>
+    </div>
+    
+    <div class="admin-only card-section">
+        <h3>Panel de Control</h3>
+        <div class="storage-meter">
+            <span class="storage-text">Calculando almacenamiento...</span>
+            <div class="storage-bar-bg">
+                <div class="storage-bar-fill"></div>
+            </div>
+        </div>
+        <button onclick="limpiarFotosAntiguas()" style="background:#dc3545; margin-bottom:10px;"><i class="fa-solid fa-trash-can"></i> Limpiar Contenido Antiguo (>6 Meses)</button>
+        <button id="logoutBtn" onclick="logoutAdmin()" style="background:#6c757d;"><i class="fa-solid fa-right-from-bracket"></i> Cerrar Sesión</button>
+    </div>
+</div>
+
+<!-- NAVEGACIÓN INFERIOR (BOTTOM NAV) -->
+<div class="bottom-nav">
+    <div class="nav-item active" onclick="showTab('tabNoticias', this)">
+        <i class="fa-solid fa-newspaper"></i>
+        <span>Noticias</span>
+    </div>
+    <div class="nav-item" onclick="showTab('tabFinanzas', this)">
+        <i class="fa-solid fa-chart-line"></i>
+        <span>Finanzas</span>
+    </div>
+    <div class="nav-item" onclick="showTab('tabGaleria', this)">
+        <i class="fa-solid fa-images"></i>
+        <span>Fotos</span>
+    </div>
+    <div class="nav-item" onclick="showTab('tabVideos', this)">
+        <i class="fa-solid fa-circle-play"></i>
+        <span>Videos</span>
+    </div>
+    <div class="nav-item" onclick="showTab('tabAdmin', this)">
+        <i class="fa-solid fa-user-lock"></i>
+        <span>Admin</span>
+    </div>
+</div>
+
+<!-- LIGHTBOX MODAL PARA FOTOS -->
+<div id="lightboxModal" class="lightbox-modal">
+    <span class="lightbox-close" onclick="cerrarVisor()">&times;</span>
+    <button class="lightbox-btn lightbox-prev" onclick="cambiarFotoVisor(-1)"><i class="fa-solid fa-chevron-left"></i></button>
+    <img id="lightboxImg" src="" alt="Ampliada">
+    <div id="lightboxCaption" class="lightbox-caption"></div>
+    <button class="lightbox-btn lightbox-next" onclick="cambiarFotoVisor(1)"><i class="fa-solid fa-chevron-right"></i></button>
+</div>
+
+</body>
+</html>
