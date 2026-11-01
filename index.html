@@ -459,6 +459,12 @@ function loginAdmin() {
 function logoutAdmin() {
     if (confirm("¿Estás seguro de que deseas salir de la aplicación?")) {
         auth.signOut().then(() => {
+            // Limpiar campos de correo y contraseña al salir por seguridad
+            let emailInput = document.getElementById('adminEmail');
+            let passInput = document.getElementById('adminPass');
+            if (emailInput) emailInput.value = '';
+            if (passInput) passInput.value = '';
+
             if (navigator.app && typeof navigator.app.exitApp === 'function') {
                 navigator.app.exitApp();
             } else if (window.opener) {
@@ -472,7 +478,6 @@ function logoutAdmin() {
         });
     }
 }
-
 // ---------------- MÓDULO DE FINANZAS ----------------
 function iniciarFinanzas() {
     try {
